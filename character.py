@@ -225,6 +225,8 @@ class Race:
     The ancestry or heritage of a character
     """
 
+    name: str
+
     @staticmethod
     def get_default_features(character_class: Type[CharacterClass]) -> List[Feature]:
         """
