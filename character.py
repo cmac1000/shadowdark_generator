@@ -1562,8 +1562,37 @@ def generate_character_sheet() -> CharacterSheet:
 
     gear += [f"{gold} gold pieces"]
 
-    ctx.talents.append(
-        random.choice(
+    # weird, for a weird reason
+    if issubclass(character_class, Warlock) or character_class in (
+        Witch,
+        KnightOfStYdris,
+    ):
+        background = random.choice(
+            [
+                "hermit: you live in the wilds",
+                "outcast: expelled for your 'crimes'",
+                "woodborn: found in a tree",
+                "amnesiac: your past is hazy",
+                "haunted: a restless spirit wants something",
+                "fugitive: someone unknown helped you get away",
+                "feytouched: you have a childhood fairie friend",
+                "witchborn: your mother was killed for witchcraft",
+                "forager: good at finding weird mushrooms",
+                "redeemer: you have a family mission",
+                "marked: you carry the mark",
+                "sacrifice: they planned to kill you, you got away",
+                "marooned: you survived intentional exposure",
+                "fallen: things used to be better",
+                "drawn: you hear the call",
+                "ascetic: you come across as scary and wise",
+                "wolfchild: you showed up dressed in pelts",
+                "healer: good with herbs",
+                "chosen: something has a purpose for you",
+                "demonborn: you have a demon ancestor",
+            ]
+        )
+    else:
+        background = random.choice(
             [
                 "urchin: grew up in a bad part of a city",
                 "wanted: bounty on you, you have friends",
@@ -1587,7 +1616,7 @@ def generate_character_sheet() -> CharacterSheet:
                 "chirurgeon: know anatomy surgery, and first aid",
             ]
         )
-    )
+    ctx.talents.append(f"background: {background}")
 
     character = Character(
         race=race,
