@@ -1,15 +1,17 @@
-# pylint: disable=too-many-lines, too-many-instance-attributes, too-many-branches, too-many-locals, too-many-statements
+# pylint: disable=too-many-lines, too-many-instance-attributes, too-many-branches, too-many-locals, too-many-statements, too-few-public-methods
 """
 Generates a series of markdown-formatted character sheets, suitable
 for adventuring using the Shadowdark system.
 """
+from __future__ import annotations
 
+import copy
 import itertools
 import random
 from collections import defaultdict
 from dataclasses import dataclass
 from enum import Enum
-from typing import Dict, Iterable, List, Set
+from typing import Dict, Iterable, List, Optional, Set, Tuple, Type, TypedDict
 
 DieSpecification = str
 Item = str
@@ -19,31 +21,860 @@ Talent = str
 Language = str
 
 
-class Race(Enum):
+class StatArray(TypedDict):
     """
-    Valid races for Shadowdark characters
-    """
-
-    DWARF = "dwarf"
-    HUMAN = "human"
-    ELF = "elf"
-    HALF_ORC = "half orc"
-    GOBLIN = "goblin"
-    HALFLING = "halfling"
-
-
-class CharacterClass(Enum):
-    """
-    Valid classes for Shadowdark characters
+    A dictionary of stats for a character
     """
 
-    THIEF = "thief"
-    FIGHTER = "fighter"
-    CLERIC = "cleric"
-    WIZARD = "wizard"
-    KNIGHT_OF_ST_YDRIS = "knight of St. Ydris"
-    WARLOCK = "warlock"
-    WITCH = "witch"
+    dexterity: int
+    strength: int
+    intelligence: int
+    wisdom: int
+    charisma: int
+    constitution: int
+
+
+class Bonus(Enum):
+    """
+    A bonus that can be applied to a character as an integer
+    """
+
+    ALMAZZAT_MELEE = "almazzat_melee"
+    ARMOR = "armor"
+    BACKSTAB = "backstab"
+    DEMONIC_POSSESSION = "demonic_possession"
+    KYTHEROS_REROLL = "kytheros_reroll"
+    MELEE_ATTACK = "melee_attack"
+    MUGDULBLUB_HD = "mugdulblub_hd"
+    MUGDULBLUB_SLIME = "mugdulblub_slime"
+    PLATE_ARMOR = "plate_armor"
+    RANGED_ATTACK = "ranged_attack"
+    SHUNE_MIND = "shune_mind"
+    SHUNE_XP = "shune_xp"
+    SPELL_CASTING = "spell_casting"
+    TITANIA_HYPNOTIZE = "titania_hypnotize"
+    WILLOWMAN_MORALE = "willowman_morale"
+    WILLOWMAN_TELEPORT = "willowman_teleport"
+    WITCH_TELEPORT = "witch_teleport"
+
+
+class Feature:
+    pass
+
+
+@dataclass
+class BonusFeature(Feature):
+    bonus: Bonus
+    value: int
+
+
+@dataclass
+class ImmunityFeature(Feature):
+    damage_immunity: str
+
+
+@dataclass
+class GearFeature(Feature):
+    gear: str
+    weight: int
+
+
+@dataclass
+class LanguageFeature(Feature):
+    language: Language
+
+
+@dataclass
+class SpellMasteryFeature(Feature):
+    spell: Spell
+
+
+@dataclass
+class SpellFeature(Feature):
+    spell: Spell
+
+
+@dataclass
+class MiscellaneousFeature(Feature):
+    name: str
+
+
+@dataclass
+class WeaponMasteryFeature(Feature):
+    weapon: str
+
+
+@dataclass
+class WeaponProficiencyFeature(Feature):
+    weapon: str
+
+
+@dataclass
+class StatFeature(Feature):
+    stat: str
+    value: int
+
+
+class FeatureContext:
+    """
+    A container for features accumulated during character generation
+    """
+
+    bonuses: Dict[Bonus, int]
+    damage_immunities: Set[str]
+    gear_weight: int
+    gear: GearList
+    languages: Set[Language]
+    spell_masteries: Set[Spell]
+    spells: Set[Spell]
+    stats: StatArray
+    talents: List[Talent]
+    weapon_masteries: Set[str]
+    weapon_proficiencies: Set[str]
+
+    def __init__(self, stats: StatArray):
+        self.bonuses = defaultdict(int)
+        self.damage_immunities = set()
+        self.gear = []
+        self.gear_weight = 0
+        self.languages = set()
+        self.spell_masteries = set()
+        self.spells = set()
+        self.talents = []
+        self.weapon_masteries = set()
+        self.weapon_proficiencies = set()
+        self.stats = copy.deepcopy(stats)
+
+    def apply_feature(self, feature: Feature) -> None:
+        if isinstance(feature, BonusFeature):
+            self.bonuses[feature.bonus] += feature.value
+        elif isinstance(feature, ImmunityFeature):
+            self.damage_immunities.add(feature.damage_immunity)
+        elif isinstance(feature, GearFeature):
+            self.gear.append(feature.gear)
+            self.gear_weight += feature.weight
+        elif isinstance(feature, LanguageFeature):
+            self.languages.add(feature.language)
+        elif isinstance(feature, SpellMasteryFeature):
+            self.spell_masteries.add(feature.spell)
+        elif isinstance(feature, SpellFeature):
+            self.spells.add(feature.spell)
+        elif isinstance(feature, MiscellaneousFeature):
+            self.talents.append(feature.name)
+        elif isinstance(feature, WeaponMasteryFeature):
+            self.weapon_masteries.add(feature.weapon)
+        elif isinstance(feature, WeaponProficiencyFeature):
+            self.weapon_proficiencies.add(feature.weapon)
+        elif isinstance(feature, StatFeature):
+            self.stats[feature.stat] += feature.value  # type: ignore
+
+
+class Race:
+    @staticmethod
+    def get_default_features(character_class: Type[CharacterClass]) -> List[Feature]:
+        raise NotImplementedError()
+
+
+class Human(Race):
+    name = "Human"
+
+    @staticmethod
+    def get_default_features(character_class: Type[CharacterClass]) -> List[Feature]:
+        return [
+            LanguageFeature(language="common"),
+            LanguageFeature(language=random.choice(COMMON_LANGUAGES)),
+        ]
+
+
+class Dwarf(Race):
+    name = "Dwarf"
+
+    @staticmethod
+    def get_default_features(character_class: Type[CharacterClass]) -> List[Feature]:
+        return [
+            LanguageFeature(language="common"),
+            LanguageFeature(language="dwarvish"),
+            MiscellaneousFeature(name="stout: roll hit dice gains with advantage"),
+        ]
+
+
+class Elf(Race):
+    name = "Elf"
+
+    @staticmethod
+    def get_default_features(character_class: Type[CharacterClass]) -> List[Feature]:
+        features: List[Feature] = [LanguageFeature("common"), LanguageFeature("elvish")]
+        if character_class in [
+            Wizard,
+            Cleric,
+            Witch,
+        ]:
+            features.append(BonusFeature(Bonus.SPELL_CASTING, 1))
+        else:
+            features.append(BonusFeature(Bonus.RANGED_ATTACK, 1))
+
+        return features
+
+
+class HalfOrc(Race):
+    name = "Half-Orc"
+
+    @staticmethod
+    def get_default_features(character_class: Type[CharacterClass]) -> List[Feature]:
+        return [
+            BonusFeature(Bonus.MELEE_ATTACK, 1),
+            LanguageFeature("common"),
+            LanguageFeature("orcish"),
+        ]
+
+
+class Goblin(Race):
+    name = "Goblin"
+
+    @staticmethod
+    def get_default_features(character_class: Type[CharacterClass]) -> List[Feature]:
+        return [
+            MiscellaneousFeature("keen senses: can't be surprised"),
+            LanguageFeature("common"),
+            LanguageFeature("goblin"),
+        ]
+
+
+class Halfling(Race):
+    name = "Halfling"
+
+    @staticmethod
+    def get_default_features(character_class: Type[CharacterClass]) -> List[Feature]:
+        return [
+            MiscellaneousFeature(
+                "stealthy: 1/day can become invisible for three rounds"
+            ),
+            LanguageFeature("common"),
+        ]
+
+
+class CharacterClass:
+    hit_dice: str
+    name: str
+
+    @staticmethod
+    def choose_race() -> Type[Race]:
+        raise NotImplementedError
+
+    @staticmethod
+    def get_default_features(race: Type[Race], alignment: str) -> List[Feature]:
+        raise NotImplementedError
+
+    @staticmethod
+    def requires_reroll(talent_rolls: Iterable[int]) -> bool:
+        """
+        Returns whether or not a character class requires a reroll
+        :param: talent_rolls: rolls for talent
+        :returns: whether or not the character class requires a reroll
+        """
+        return False
+
+    @staticmethod
+    def get_features_for_rolls(
+        talent_roll: int, ctx: FeatureContext, race: Race
+    ) -> List[Feature]:
+        """
+        Returns a feature for a character class
+
+        :param: talent_roll: the roll of the talent
+        :param: ctx: the context of the character
+        :returns: a feature
+        """
+        raise NotImplementedError
+
+
+class Cleric(CharacterClass):
+    name = "Cleric"
+    hit_dice = "1d6"
+    weapon_preferences = ["longsword", "mace", "club"]
+
+    @staticmethod
+    def choose_race() -> Type[Race]:
+        return random.choice([Human, Dwarf])
+
+    @staticmethod
+    def get_default_features(race: Type[Race], alignment: str) -> List[Feature]:
+        spells: Set[Spell] = set()
+        while len(spells) < 3:
+            spells.add(random.choice(CLERIC_SPELLS))
+        return [
+            LanguageFeature(
+                language=random.choice(["primordial", "diabolic", "celestial"])
+            ),
+            GearFeature(gear="holy symbol", weight=0),
+            SpellFeature(spell="turn undead"),
+            MiscellaneousFeature(
+                name=f"worshipper of {random.choice(GODS[alignment])}"
+            ),
+        ] + [SpellFeature(spell=spell) for spell in spells]
+
+    @staticmethod
+    def get_features_for_roll(
+        talent_roll: int, ctx: FeatureContext, race: Race
+    ) -> List[Feature]:
+        """
+        Returns a feature for a character class
+
+        :param: talent_roll: the roll of the talent
+        :param: ctx: the context of the character
+        :returns: a feature
+        """
+        if talent_roll == 2:
+            return [
+                SpellMasteryFeature(
+                    spell=random.choice(
+                        [x for x in ctx.spells if x not in ctx.spell_masteries]
+                    )
+                )
+            ]
+        elif 3 <= talent_roll <= 6:
+            return [BonusFeature(bonus=Bonus.MELEE_ATTACK, value=1)]
+        elif (7 <= talent_roll <= 9) or talent_roll == 12:
+            return [BonusFeature(bonus=Bonus.SPELL_CASTING, value=1)]
+        elif ctx.stats["wisdom"] < 18:
+            return [StatFeature(stat="wisdom", value=2)]
+        return [StatFeature(stat="strength", value=2)]
+
+
+class Fighter(CharacterClass):
+    name = "Fighter"
+    hit_dice = "1d8"
+    weapon_preferences = ["bastard sword", "longsword", "spear", "dagger", "club"]
+
+    @staticmethod
+    def choose_race() -> Type[Race]:
+        return random.choice(
+            [
+                Human,
+                HalfOrc,
+                Dwarf,
+            ]
+        )
+
+    @staticmethod
+    def get_default_features(race: Type[Race], alignment: str) -> List[Feature]:
+        return [
+            MiscellaneousFeature(name="hauler: add con mod, if positive to gear slots"),
+            MiscellaneousFeature(
+                name="grit: advantage on strength checks to overcome opposing force"
+            ),
+            WeaponMasteryFeature(
+                weapon="greataxe" if race is Dwarf else "bastard sword"
+            ),
+        ]
+
+    @staticmethod
+    def get_features_for_roll(
+        talent_roll: int, ctx: FeatureContext, race: Race
+    ) -> List[Feature]:
+        """
+        Returns a feature for a character class
+
+        :param: talent_roll: the roll of the talent
+        :param: ctx: the context of the character
+        :returns: a feature
+        """
+        if talent_roll == 2:
+            if "longbow" not in ctx.weapon_masteries:
+                return [WeaponMasteryFeature(weapon="longbow")]
+            else:
+                return [WeaponMasteryFeature(weapon="greatsword")]
+
+        elif 3 <= talent_roll <= 6 or talent_roll == 12:
+            return [
+                BonusFeature(bonus=Bonus.MELEE_ATTACK, value=1),
+                BonusFeature(bonus=Bonus.RANGED_ATTACK, value=1),
+            ]
+        elif 7 <= talent_roll <= 9:
+            if ctx.stats["strength"] < 18:
+                return [StatFeature(stat="strength", value=2)]
+            elif ctx.stats["constitution"] < 18:
+                return [StatFeature(stat="constitution", value=2)]
+            else:
+                return [StatFeature(stat="dexterity", value=2)]
+        return [BonusFeature(bonus=Bonus.PLATE_ARMOR, value=1)]
+
+
+class Thief(CharacterClass):
+    name = "Thief"
+    hit_dice = "1d4"
+    weapon_preferences = ["shortsword", "dagger", "club"]
+
+    @staticmethod
+    def choose_race() -> Type[Race]:
+        return random.choice([Human, Goblin, Halfling])
+
+    @staticmethod
+    def get_default_features(race: Type[Race], alignment: str) -> List[Feature]:
+        return [
+            MiscellaneousFeature(name=x)
+            for x in [
+                "backstab: on attack against unaware target, add 1+half-level damage dice",
+                "thievery: you always have thieves' tools, no gear slots needed",
+                "trained in climbing, sneaking, hiding, finding/disabling traps, delicate "
+                + "work like picking pockets and locks (advantage on relevant checks)",
+            ]
+        ]
+
+    @staticmethod
+    def requires_reroll(talent_rolls: Iterable[int]) -> bool:
+        """
+        Returns whether or not a character class requires a reroll
+        :param: talent_rolls: rolls for talent
+        :returns: whether or not the character class requires a reroll
+        """
+        if len(list(talent_rolls)) == 1:
+            return False
+        if all((x == 2 for x in talent_rolls)):
+            return True
+        return False
+
+    @staticmethod
+    def get_features_for_roll(
+        talent_roll: int, ctx: FeatureContext, race: Race
+    ) -> List[Feature]:
+        """
+        Returns a feature for a character class
+
+        :param: talent_roll: the roll of the talent
+        :param: ctx: the context of the character
+        :returns: a feature
+        """
+        if talent_roll == 2:
+            return [MiscellaneousFeature(name="advantage on initiative checks")]
+
+        elif 3 <= talent_roll <= 5:
+            return [
+                BonusFeature(bonus=Bonus.BACKSTAB, value=1),
+            ]
+        elif 6 <= talent_roll <= 9:
+            if ctx.stats["dexterity"] < 18:
+                return [StatFeature(stat="dexterity", value=2)]
+            elif ctx.stats["charisma"] < 18:
+                return [StatFeature(stat="charisma", value=2)]
+            else:
+                return [StatFeature(stat="constitution", value=2)]
+        return [
+            BonusFeature(bonus=Bonus.MELEE_ATTACK, value=1),
+            BonusFeature(bonus=Bonus.RANGED_ATTACK, value=1),
+        ]
+
+
+class Wizard(CharacterClass):
+    name = "Wizard"
+    hit_dice = "1d4"
+    weapon_preferences = ["staff", "dagger"]
+
+    @staticmethod
+    def choose_race() -> Type[Race]:
+        return random.choice([Human, Elf])
+
+    @staticmethod
+    def get_default_features(race: Type[Race], alignment: str) -> List[Feature]:
+        spells: Set[Spell] = set()
+        while len(spells) < 3:
+            spells.add(random.choice(WIZARD_SPELLS))
+        return [SpellFeature(spell) for spell in spells]
+
+    @staticmethod
+    def get_features_for_roll(
+        talent_roll: int, ctx: FeatureContext, race: Race
+    ) -> List[Feature]:
+        """
+        Returns a feature for a character class
+
+        :param: talent_roll: the roll of the talent
+        :param: ctx: the context of the character
+        :returns: a feature
+        """
+        if talent_roll == 2:
+            return [GearFeature(gear=random.choice(MAGIC_ITEMS), weight=1)]
+        elif 3 <= talent_roll <= 7 or talent_roll == 12:
+            if ctx.stats["intelligence"] < 18:
+                return [StatFeature(stat="intelligence", value=2)]
+            else:
+                return [BonusFeature(bonus=Bonus.SPELL_CASTING, value=1)]
+        elif 8 <= talent_roll <= 9:
+            return [
+                SpellMasteryFeature(
+                    spell=random.choice(
+                        [x for x in ctx.spells if x not in ctx.spell_masteries]
+                    )
+                )
+            ]
+        return [
+            SpellFeature(
+                spell=random.choice([x for x in WIZARD_SPELLS if x not in ctx.spells])
+            )
+        ]
+
+
+class KnightOfStYdris(CharacterClass):
+    name = "Knight of St. Ydris"
+    hit_dice = "1d6"
+    weapon_preferences = [
+        "bastard sword",
+        "longsword",
+        "spear",
+        "dagger",
+        "club",
+    ]
+
+    @staticmethod
+    def choose_race() -> Type[Race]:
+        return random.choice([Human, HalfOrc, Dwarf])
+
+    @staticmethod
+    def get_default_features(race: Type[Race], alignment: str) -> List[Feature]:
+        return [
+            LanguageFeature(language="diabolic"),
+            BonusFeature(Bonus.DEMONIC_POSSESSION, 1),
+        ]
+
+    @staticmethod
+    def get_features_for_roll(
+        talent_roll: int, ctx: FeatureContext, race: Race
+    ) -> List[Feature]:
+        """
+        Returns a feature for a character class
+
+        :param: talent_roll: the roll of the talent
+        :param: ctx: the context of the character
+        :returns: a feature
+        """
+        if talent_roll in (2, 12):
+            return [BonusFeature(Bonus.DEMONIC_POSSESSION, 1)]
+
+        elif 3 <= talent_roll <= 6:
+            return [
+                BonusFeature(bonus=Bonus.MELEE_ATTACK, value=1),
+            ]
+        elif 7 <= talent_roll <= 9:
+            if ctx.stats["strength"] < 18:
+                return [StatFeature(stat="strength", value=2)]
+            elif ctx.stats["constitution"] < 18:
+                return [StatFeature(stat="constitution", value=2)]
+            else:
+                return [StatFeature(stat="dexterity", value=2)]
+        if ctx.stats["charisma"] < 18:
+            return [StatFeature(stat="charisma", value=2)]
+        else:
+            return [BonusFeature(Bonus.SPELL_CASTING, 1)]
+
+
+class Warlock(CharacterClass):
+    name = "Warlock"
+    hit_dice = "1d6"
+    weapon_preferences = ["longsword", "mace", "dagger", "club"]
+
+    @staticmethod
+    def choose_race() -> Type[Race]:
+        return random.choice([Human, HalfOrc, Dwarf, Elf, Goblin, Halfling])
+
+
+class SlimeWarlock(Warlock):
+    name = "Slime Warlock"
+
+    @staticmethod
+    def get_default_features(race: Type[Race], alignment: str) -> List[Feature]:
+        return [MiscellaneousFeature(name="warlock of Mugdulblub")]
+
+    @staticmethod
+    def get_features_for_roll(
+        talent_roll: int, ctx: FeatureContext, race: Race
+    ) -> List[Feature]:
+        """
+        Returns a feature for a character class
+
+        :param: talent_roll: the roll of the talent
+        :param: ctx: the context of the character
+        :returns: a feature
+        """
+        if talent_roll == 2:
+            return [BonusFeature(Bonus.MUGDULBLUB_SLIME, 1)]
+        elif 3 <= talent_roll <= 7:
+            return [
+                BonusFeature(bonus=Bonus.MUGDULBLUB_HD, value=2),
+            ]
+        elif (8 <= talent_roll <= 9) or talent_roll == 12:
+            if ctx.stats["constitution"] < 18:
+                return [StatFeature(stat="constitution", value=2)]
+            else:
+                return [StatFeature(stat="dexterity", value=2)]
+        return [
+            ImmunityFeature(
+                damage_immunity=random.choice(
+                    [
+                        x
+                        for x in ["acid", "cold", "poison"]
+                        if x not in ctx.damage_immunities
+                    ]
+                )
+            ),
+        ]
+
+
+class DemonWarlock(Warlock):
+    name = "Demon Warlock"
+
+    @staticmethod
+    def get_default_features(race: Type[Race], alignment: str) -> List[Feature]:
+        return [MiscellaneousFeature(name="warlock of Almazzat")]
+
+    @staticmethod
+    def requires_reroll(talent_rolls: Iterable[int]) -> bool:
+        """
+        Returns whether or not a character class requires a reroll
+        :param: talent_rolls: rolls for talent
+        :returns: whether or not the character class requires a reroll
+        """
+        if len(list(talent_rolls)) == 1:
+            return False
+        if all((x in (10, 11) for x in talent_rolls)):
+            return True
+        return False
+
+    @staticmethod
+    def get_features_for_roll(
+        talent_roll: int, ctx: FeatureContext, race: Race
+    ) -> List[Feature]:
+        """
+        Returns a feature for a character class
+
+        :param: talent_roll: the roll of the talent
+        :param: ctx: the context of the character
+        :returns: a feature
+        """
+        if talent_roll == 2:
+            return [BonusFeature(Bonus.ALMAZZAT_MELEE, 1)]
+        elif 3 <= talent_roll <= 7:
+            return [BonusFeature(Bonus.MELEE_ATTACK, 1)]
+        elif (8 <= talent_roll <= 9) or talent_roll == 12:
+            if ctx.stats["strength"] < 18:
+                return [StatFeature(stat="strength", value=2)]
+            else:
+                return [BonusFeature(Bonus.MELEE_ATTACK, 1)]
+        return [MiscellaneousFeature(name="advantage on initiative checks")]
+
+
+class FateWarlock(Warlock):
+    name = "Fate Warlock"
+
+    @staticmethod
+    def get_default_features(race: Type[Race], alignment: str) -> List[Feature]:
+        return [MiscellaneousFeature(name="warlock of Kytheros")]
+
+    @staticmethod
+    def requires_reroll(talent_rolls: Iterable[int]) -> bool:
+        """
+        Returns whether or not a character class requires a reroll
+        :param: talent_rolls: rolls for talent
+        :returns: whether or not the character class requires a reroll
+        """
+        if len(list(talent_rolls)) == 1:
+            return False
+        if all((x in (10, 11) for x in talent_rolls)):
+            return True
+        return False
+
+    @staticmethod
+    def get_features_for_roll(
+        talent_roll: int, ctx: FeatureContext, race: Race
+    ) -> List[Feature]:
+        """
+        Returns a feature for a character class
+
+        :param: talent_roll: the roll of the talent
+        :param: ctx: the context of the character
+        :returns: a feature
+        """
+        if talent_roll == 2:
+            return [BonusFeature(Bonus.KYTHEROS_REROLL, 1)]
+        elif 3 <= talent_roll <= 7:
+            [BonusFeature(Bonus.ARMOR, 1)]
+        elif (8 <= talent_roll <= 9) or talent_roll == 12:
+            if ctx.stats["wisdom"] < 18:
+                return [StatFeature(stat="wisdom", value=2)]
+            elif ctx.stats["dexterity"] < 18:
+                return [StatFeature(stat="dexterity", value=2)]
+            return [StatFeature(stat="strength", value=2)]
+        return [MiscellaneousFeature(name="3/day, add WIS bonus to any roll")]
+
+
+class VileWarlock(Warlock):
+    name = "Vile Warlock"
+
+    @staticmethod
+    def get_default_features(race: Type[Race], alignment: str) -> List[Feature]:
+        return [MiscellaneousFeature(name="warlock of Shune the Vile")]
+
+    @staticmethod
+    def get_features_for_roll(
+        talent_roll: int, ctx: FeatureContext, race: Race
+    ) -> List[Feature]:
+        """
+        Returns a feature for a character class
+
+        :param: talent_roll: the roll of the talent
+        :param: ctx: the context of the character
+        :returns: a feature
+        """
+        if talent_roll == 2:
+            return [BonusFeature(Bonus.SHUNE_MIND, 1)]
+        elif 3 <= talent_roll <= 7 or talent_roll == 12:
+            return [
+                SpellFeature(
+                    spell=random.choice(
+                        [x for x in WIZARD_SPELLS if x not in ctx.spells]
+                    )
+                )
+            ]
+        elif 8 <= talent_roll <= 9:
+            if ctx.stats["intelligence"] < 18:
+                return [StatFeature(stat="intelligence", value=2)]
+            return [StatFeature(stat="dexterity", value=2)]
+        return [BonusFeature(Bonus.SHUNE_XP, 1)]
+
+
+class FeyWarlock(Warlock):
+    name = "Fey Warlock"
+
+    @staticmethod
+    def get_default_features(race: Type[Race], alignment: str) -> List[Feature]:
+        return [MiscellaneousFeature(name="warlock of Titania")]
+
+    @staticmethod
+    def requires_reroll(talent_rolls: Iterable[int]) -> bool:
+        """
+        Returns whether or not a character class requires a reroll
+        :param: talent_rolls: rolls for talent
+        :returns: whether or not the character class requires a reroll
+        """
+        if len(list(talent_rolls)) == 1:
+            return False
+        if all((x in (10, 11) for x in talent_rolls)):
+            return True
+        return False
+
+    @staticmethod
+    def get_features_for_roll(
+        talent_roll: int, ctx: FeatureContext, race: Race
+    ) -> List[Feature]:
+        """
+        Returns a feature for a character class
+
+        :param: talent_roll: the roll of the talent
+        :param: ctx: the context of the character
+        :returns: a feature
+        """
+        if talent_roll == 2:
+            return [BonusFeature(Bonus.TITANIA_HYPNOTIZE, 1)]
+        elif 3 <= talent_roll <= 7:
+            if "longbow" not in ctx.weapon_proficiencies:
+                return [WeaponProficiencyFeature(weapon="longbow")]
+            return [BonusFeature(Bonus.RANGED_ATTACK, 1)]
+        elif (8 <= talent_roll <= 9) or talent_roll == 12:
+            if ctx.stats["dexterity"] < 18:
+                return [StatFeature(stat="dexterity", value=2)]
+            return [StatFeature(stat="charisma", value=2)]
+        return [
+            MiscellaneousFeature(name="hostile spells that target you are hard to cast")
+        ]
+
+
+class WillowWarlock(Warlock):
+    name = "Willow Warlock"
+
+    @staticmethod
+    def get_default_features(race: Type[Race], alignment: str) -> List[Feature]:
+        return [MiscellaneousFeature(name="warlock of The Willowman")]
+
+    @staticmethod
+    def get_features_for_roll(
+        talent_roll: int, ctx: FeatureContext, race: Race
+    ) -> List[Feature]:
+        """
+        Returns a feature for a character class
+
+        :param: talent_roll: the roll of the talent
+        :param: ctx: the context of the character
+        :returns: a feature
+        """
+        if talent_roll == 2:
+            return [BonusFeature(Bonus.WILLOWMAN_TELEPORT, 1)]
+        elif 3 <= talent_roll <= 7:
+            return [BonusFeature(Bonus.MELEE_ATTACK, 1)]
+        elif (8 <= talent_roll <= 9) or talent_roll == 12:
+            if ctx.stats["strength"] < 18:
+                return [StatFeature(stat="strength", value=2)]
+            return [StatFeature(stat="dexterity", value=2)]
+        return [BonusFeature(Bonus.WILLOWMAN_MORALE, 1)]
+
+
+class Witch(CharacterClass):
+    name = "Witch"
+    hit_dice = "1d4"
+    weapon_preferences = ["dagger", "staff"]
+
+    @staticmethod
+    def choose_race() -> Type[Race]:
+        return random.choice([Human, Elf, Goblin, Halfling])
+
+    @staticmethod
+    def get_default_features(race: Type[Race], alignment: str) -> List[Feature]:
+        spells: Set[Spell] = set()
+        while len(spells) < 3:
+            spells.add(random.choice(WITCH_SPELLS))
+        return (
+            [SpellFeature(spell=x) for x in spells]  # type: ignore
+            + [
+                LanguageFeature(language=x)  # type: ignore
+                for x in {"diabolic", "primoridal", "sylvan"}
+            ]
+            + [
+                MiscellaneousFeature(  # type: ignore
+                    name="familiar: you have a little buddy, it speaks common"
+                    + "and you can cast spells through it"
+                )
+            ]
+        )
+
+    @staticmethod
+    def get_features_for_roll(
+        talent_roll: int, ctx: FeatureContext, _
+    ) -> List[Feature]:
+        """
+        Returns a feature for a character class
+
+        :param: talent_roll: the roll of the talent
+        :param: ctx: the context of the character
+        :returns: a feature
+        """
+        if talent_roll == 2:
+            return [BonusFeature(bonus=Bonus.WITCH_TELEPORT, value=1)]
+        if 3 <= talent_roll <= 7 or talent_roll == 12:
+            if ctx.stats["charisma"] < 18:
+                return [StatFeature(stat="charisma", value=2)]
+            else:
+                return [BonusFeature(bonus=Bonus.SPELL_CASTING, value=1)]
+        if 8 <= talent_roll <= 9:
+            return [
+                SpellMasteryFeature(
+                    spell=random.choice(
+                        [x for x in ctx.spells if x not in ctx.spell_masteries]
+                    )
+                )
+            ]
+        return [
+            SpellFeature(
+                spell=random.choice([x for x in WITCH_SPELLS if x not in ctx.spells])
+            )
+        ]
 
 
 @dataclass
@@ -52,30 +883,15 @@ class Character:
     A shadowdark character.
     """
 
-    race: Race
-    character_class: CharacterClass
+    race: Type[Race]
+    character_class: Type[CharacterClass]
+    stats: StatArray
     hit_points: int
-    strength: int
-    dexterity: int
-    constitution: int
-    intelligence: int
-    wisdom: int
-    charisma: int
     spells: Set[Spell]
     talents: List[Talent]
     languages: Set[Language]
     name: str
 
-
-HIT_DICE_TABLE: Dict[CharacterClass, DieSpecification] = {
-    CharacterClass.THIEF: "1d4",
-    CharacterClass.FIGHTER: "1d8",
-    CharacterClass.CLERIC: "1d6",
-    CharacterClass.WIZARD: "1d4",
-    CharacterClass.KNIGHT_OF_ST_YDRIS: "1d6",
-    CharacterClass.WARLOCK: "1d6",
-    CharacterClass.WITCH: "1d4",
-}
 
 STAT_BONUS_TABLE: Dict[int, int] = defaultdict(
     lambda: 4,
@@ -100,22 +916,6 @@ STAT_BONUS_TABLE: Dict[int, int] = defaultdict(
         18: 4,
     },
 )
-
-WEAPON_PREFERENCES = {
-    CharacterClass.THIEF: ["shortsword", "dagger", "club"],
-    CharacterClass.FIGHTER: ["bastard sword", "longsword", "spear", "dagger", "club"],
-    CharacterClass.KNIGHT_OF_ST_YDRIS: [
-        "bastard sword",
-        "longsword",
-        "spear",
-        "dagger",
-        "club",
-    ],
-    CharacterClass.CLERIC: ["longsword", "mace", "club"],
-    CharacterClass.WIZARD: ["staff", "dagger"],
-    CharacterClass.WARLOCK: ["longsword", "mace", "dagger", "club"],
-    CharacterClass.WITCH: ["dagger", "staff"],
-}
 
 PRICE_TABLE = {
     "shortsword": 7,
@@ -201,8 +1001,9 @@ MAGIC_ITEMS = [
     "true name",
 ]
 
+# TODO move into race
 NAMES = {
-    Race.DWARF: [
+    Dwarf: [
         "Hilde",
         "Torbin",
         "Marga",
@@ -214,7 +1015,7 @@ NAMES = {
         "Elga",
         "Alric",
     ],
-    Race.ELF: [
+    Elf: [
         "Eliara",
         "Ryarn",
         "Sariel",
@@ -226,28 +1027,28 @@ NAMES = {
         "Hiralia",
         "Cyrwin",
     ],
-    Race.GOBLIN: [
+    Goblin: [
         "Iggs",
         "Tark",
         "Nix",
         "Lenk",
         "Roke",
     ],
-    Race.HALFLING: [
+    Halfling: [
         "Willow",
         "Benny",
         "Annie",
         "Tucker",
         "Marie",
     ],
-    Race.HALF_ORC: [
+    HalfOrc: [
         "Vara",
         "Gralk",
         "Ranna",
         "Korv",
         "Zasha",
     ],
-    Race.HUMAN: [
+    Human: [
         "Zali",
         "Bram",
         "Clara",
@@ -323,17 +1124,17 @@ class CharacterSheet:
         :return: Markdown-formatted character sheet
         """
         return f"""
-# {self.character.name}, {self.character.race.value} {self.character.character_class.value}
+# {self.character.name}, {self.character.race.name} {self.character.character_class.name}
 
 HP: {self.character.hit_points}
 
 ```
-STR: {self._format_stat(self.character.strength)}
-DEX: {self._format_stat(self.character.dexterity)}
-CON: {self._format_stat(self.character.constitution)}
-INT: {self._format_stat(self.character.intelligence)}
-WIS: {self._format_stat(self.character.wisdom)}
-CHA: {self._format_stat(self.character.charisma)}
+STR: {self._format_stat(self.character.stats['strength'])}
+DEX: {self._format_stat(self.character.stats['dexterity'])}
+CON: {self._format_stat(self.character.stats['constitution'])}
+INT: {self._format_stat(self.character.stats['intelligence'])}
+WIS: {self._format_stat(self.character.stats['wisdom'])}
+CHA: {self._format_stat(self.character.stats['charisma'])}
 ```
 
 {self._format_languages(self.character.languages)}
@@ -342,27 +1143,6 @@ CHA: {self._format_stat(self.character.charisma)}
 {self._format_spells(self.character.spells)}
 {self._format_gear(self.gear)}
         """
-
-
-def get_racial_languages(race: Race) -> Set[Language]:
-    """
-    Determines the starting languages for a character of a given race
-
-    :param: race: the race of the character
-    :returns: a set of languages as strings
-    """
-    languages_by_race = {
-        Race.HALFLING: set(["common"]),
-        Race.HUMAN: set(["common"]),
-        Race.HALF_ORC: set(["common", "orchish"]),
-        Race.DWARF: set(["common", "dwarvish"]),
-        Race.ELF: set(["common", "elvish", "sylvan"]),
-        Race.GOBLIN: set(["common", "goblin"]),
-    }
-    languages = languages_by_race[race]
-    if race is Race.HUMAN:
-        languages.add(random.choice(COMMON_LANGUAGES))
-    return languages
 
 
 def roll(specification: DieSpecification, advantage=False, disadvantage=False) -> int:
@@ -391,7 +1171,7 @@ def roll(specification: DieSpecification, advantage=False, disadvantage=False) -
     return sum((random.randint(1, int(die_size)) for _ in range(int(count))))
 
 
-def make_talent_rolls(race: Race) -> List[int]:
+def make_talent_rolls(race: Type[Race]) -> List[int]:
     """
     Returns the results of a series of 2d6 rolls, suitable
     for use in determining talents.
@@ -399,7 +1179,7 @@ def make_talent_rolls(race: Race) -> List[int]:
     :param: race: necessary because humans get extra starting talents
     :returns: a list of integers, representing results of the rolls
     """
-    return [roll("2d6") for _ in range((2 if race is Race.HUMAN else 1))]
+    return [roll("2d6") for _ in range((2 if race is Human else 1))]
 
 
 def generate_character_sheet() -> CharacterSheet:
@@ -411,539 +1191,188 @@ def generate_character_sheet() -> CharacterSheet:
     """
     # roll stats - if any under 14, re-roll
     while True:
-        strength, dexterity, constitution, intelligence, wisdom, charisma = [
-            roll("3d6") for _ in range(6)
-        ]
-        if any(
-            (
-                x >= 14
-                for x in (
-                    strength,
-                    dexterity,
-                    constitution,
-                    wisdom,
-                    intelligence,
-                    charisma,
+        stats: StatArray = {
+            "strength": roll("3d6"),
+            "dexterity": roll("3d6"),
+            "constitution": roll("3d6"),
+            "intelligence": roll("3d6"),
+            "wisdom": roll("3d6"),
+            "charisma": roll("3d6"),
+        }
+        if max(list(stats.values())) >= 14:  # type: ignore
+            break
+
+    # choose class based on best stat
+    best: Tuple[str, int] = max(
+        (x for x in stats.items() if x[0] != "constitution"), key=lambda x: x[1]  # type: ignore
+    )
+
+    character_class: Optional[Type[CharacterClass]] = None
+    if best[1] < 14:  # good at nothing, serve the underlords!
+        if best[1] < 10:
+            # true scrubs serve the slime god
+            character_class = SlimeWarlock
+        elif best[0] == "strength":
+            character_class = DemonWarlock
+        elif best[0] == "dexterity":
+            character_class = FeyWarlock
+        elif best[0] == "intelligence":
+            character_class = VileWarlock
+        elif best[0] == "wisdom":
+            character_class = FateWarlock
+        else:
+            character_class = WillowWarlock
+    elif best[0] == "dexterity":
+        character_class = Thief
+    elif best[0] == "wisdom":
+        character_class = Cleric
+    elif best[0] == "strength":
+        if stats["charisma"] >= 14:
+            character_class = KnightOfStYdris  # look good enough to be an edgelord?
+        else:
+            character_class = Fighter
+    elif best[0] == "intelligence":
+        character_class = Wizard
+    elif best[0] == "charisma":
+        character_class = Witch
+
+    if not character_class:
+        raise Exception("Could not determine character class")
+
+    alignment = random.choice(["lawful", "neutral"])
+    race = character_class.choose_race()
+
+    while True:
+        talent_rolls = make_talent_rolls(race)
+        if not character_class.requires_reroll(talent_rolls):
+            break
+
+    ctx = FeatureContext(stats)
+
+    for feature in race.get_default_features(character_class):
+        ctx.apply_feature(feature)
+    for feature in character_class.get_default_features(race, alignment):
+        ctx.apply_feature(feature)
+    for talent_roll in talent_rolls:
+        for feature in character_class.get_features_for_roll(  # type: ignore
+            talent_roll, ctx, race
+        ):
+            ctx.apply_feature(feature)
+
+    # special case logic for wizard languages
+    if character_class is Wizard:
+        for language in set(
+            random.choice(
+                list(
+                    itertools.combinations(
+                        [x for x in COMMON_LANGUAGES if x not in ctx.languages], 2
+                    )
+                )
+            )
+        ).union(
+            set(
+                random.choice(
+                    list(
+                        itertools.combinations(
+                            [x for x in RARE_LANGUAGES if x not in ctx.languages], 2
+                        )
+                    )
                 )
             )
         ):
-            break
+            ctx.apply_feature(LanguageFeature(language))
 
-    stats = sorted(
-        [
-            ("strength", strength),
-            ("dexterity", dexterity),
-            ("constitution", constitution),
-            ("intelligence", intelligence),
-            ("wisdom", wisdom),
-            ("charisma", charisma),
-        ],
-        key=lambda x: x[1],
-        reverse=True,
-    )
+    for spell in ctx.spell_masteries:
+        ctx.talents.append(f"advantage on casting {spell}")
 
-    # choose class based on best stat
-    best = next(
-        (
-            s
-            for s in stats
-            if s[0]
-            in (
-                "dexterity",
-                "wisdom",
-                "strength",
-                "intelligence",
-                "charisma",
-            )
-        )
-    )
-    if best[1] < 14:
-        character_class = CharacterClass.WARLOCK  # good at nothing, hail mary!
-    elif best[0] == "dexterity":
-        character_class = CharacterClass.THIEF
-    elif best[0] == "wisdom":
-        character_class = CharacterClass.CLERIC
-    elif best[0] == "strength":
-        if charisma >= 14:
-            character_class = CharacterClass.KNIGHT_OF_ST_YDRIS
-        else:
-            character_class = CharacterClass.FIGHTER
-    elif best[0] == "intelligence":
-        character_class = CharacterClass.WIZARD
-    elif best[0] == "charisma":
-        character_class = CharacterClass.WITCH
+    for damage_type in ctx.damage_immunities:
+        ctx.talents.append(f"immune to {damage_type} damage")
 
-    languages = set()
-    talents = []
-    gear = []
-    weight = 0
-    spells = set()
-    alignment = random.choice(["lawful", "neutral"])
-    advantage_spells = set()
-
-    if character_class == CharacterClass.CLERIC:
-        race = random.choice(
-            [
-                Race.HUMAN,
-                Race.DWARF,
-            ]
+    # add the bonuses as talents
+    if ctx.bonuses[Bonus.ALMAZZAT_MELEE]:
+        ctx.talents.append(
+            f"{ctx.bonuses[Bonus.ALMAZZAT_MELEE]}/day, gain advantage on melee attacks for 3 rounds"
         )
-        languages = get_racial_languages(race)
-        languages.add(
-            random.choice(
-                [
-                    x
-                    for x in [
-                        "primordial",
-                        "diabolic",
-                        "celestial",
-                    ]
-                    if x not in languages
-                ]
-            )
+    if ctx.bonuses[Bonus.ARMOR]:
+        ctx.talents.append(f"+{ctx.bonuses[Bonus.ARMOR]} to AC")
+    if ctx.bonuses[Bonus.BACKSTAB]:
+        ctx.talents.append(
+            f"+{ctx.bonuses[Bonus.BACKSTAB]} damage dice to backstab attacks"
         )
-        gear.append("holy symbol")
-        spells.add("turn undead")
-        while len(spells) < 3:
-            spells.add(random.choice(CLERIC_SPELLS))
-        talents.append(f"worshipper of {random.choice(GODS[alignment])}")
-
-        spellcasting_bonus = 0
-        melee_bonus = 0
-        for talent_roll in make_talent_rolls(race):
-            if talent_roll == 2:
-                advantage_spells.add(
-                    random.choice([x for x in spells if x not in advantage_spells])
-                )
-            elif 3 <= talent_roll <= 6:
-                melee_bonus += 1
-            elif 7 <= talent_roll <= 9:
-                spellcasting_bonus += 1
-            elif 10 <= talent_roll <= 11:
-                if wisdom < 18:
-                    wisdom += 2
-                else:
-                    strength += 2
-            elif talent_roll == 12:
-                spellcasting_bonus += 1
-        if spellcasting_bonus:
-            talents.append(f"+{spellcasting_bonus} to cleric spellcasting checks")
-        if melee_bonus:
-            talents.append(f"+{melee_bonus} to melee attacks")
-    elif character_class == CharacterClass.FIGHTER:
-        race = random.choice(
-            [
-                Race.HUMAN,
-                Race.HALF_ORC,
-                Race.DWARF,
-            ]
-        )
-        languages = get_racial_languages(race)
-        talents.append("hauler: add con mod, if positive to gear slots")
-        talents.append(
-            f"weapon mastery: {'greataxe' if race is Race.DWARF else 'bastard sword'}"
-        )
-        talents.append("Grit: advantage on strength checks to overcome opposing force")
-
-        melee_and_ranged_bonus = 0
-        armor_bonus = 0
-        for talent_roll in make_talent_rolls(race):
-            if talent_roll == 2:
-                if "weapon mastery: longbow" not in talents:
-                    talents.append("weapon mastery: longbow")
-                else:
-                    talents.append("weapon mastery: greatsword")
-            elif 3 <= talent_roll <= 6:
-                melee_and_ranged_bonus += 1
-            elif 7 <= talent_roll <= 9:
-                if strength < 18:
-                    strength += 2
-                elif constitution < 18:
-                    constitution += 2
-                else:
-                    dexterity += 2
-            elif 10 <= talent_roll <= 11:
-                armor_bonus += 1
-            elif talent_roll == 12:
-                melee_and_ranged_bonus += 1
-        if melee_and_ranged_bonus:
-            talents.append(f"+{melee_and_ranged_bonus} to melee and ranged attacks")
-        if armor_bonus:
-            talents.append(f"+{armor_bonus} AC when wearing plate mail")
-
-    elif character_class == CharacterClass.THIEF:
-        talents.append(
-            "backstab: on attack against unaware target, add 1+half-level damage dice"
-        )
-        talents.append("thievery: you always have thieves' tools, no gear slots needed")
-        talents.append(
-            "trained in climbing, sneaking, hiding, finding/disabling traps, delicate "
-            "work like picking pockets and locks (advantage on relevant checks)"
-        )
-        race = random.choice([Race.HUMAN, Race.GOBLIN, Race.HALFLING])
-        languages = get_racial_languages(race)
-        melee_and_ranged_bonus = 0
-        backstab_bonus = 0
-
-        while True:
-            talent_rolls = make_talent_rolls(race)
-            if len(talent_rolls) == 1:
-                break
-            if not all((x == 2 for x in talent_rolls)):
-                break
-
-        for talent_roll in talent_rolls:
-            if talent_roll == 2:
-                talents.append("advantage on initiative rolls")
-            elif 3 <= talent_roll <= 5:
-                backstab_bonus += 1
-            elif 6 <= talent_roll <= 9:
-                if dexterity < 18:
-                    dexterity += 2
-                elif charisma < 18:
-                    charisma += 2
-                else:
-                    constitution += 2
-            elif 10 <= talent_roll <= 11:
-                melee_and_ranged_bonus += 1
-            elif talent_roll == 12:
-                melee_and_ranged_bonus += 1
-        if melee_and_ranged_bonus:
-            talents.append(f"+{melee_and_ranged_bonus} to melee and ranged attacks")
-        if backstab_bonus:
-            talents.append(f"+{backstab_bonus} to backstab damage dice")
-
-    elif character_class == CharacterClass.WIZARD:
-        race = random.choice(
-            [
-                Race.HUMAN,
-                Race.ELF,
-            ]
-        )
-        languages = get_racial_languages(race)
-        languages = languages.union(
-            set(
-                random.choice(
-                    list(
-                        itertools.combinations(
-                            [x for x in COMMON_LANGUAGES if x not in languages], 2
-                        )
-                    )
-                )
-            )
-        )
-        languages = languages.union(
-            set(
-                random.choice(
-                    list(
-                        itertools.combinations(
-                            [x for x in RARE_LANGUAGES if x not in languages], 2
-                        )
-                    )
-                )
-            )
-        )
-        while len(spells) < 3:
-            spells.add(random.choice(WIZARD_SPELLS))
-
-        spellcasting_bonus = 0
-        for talent_roll in make_talent_rolls(race):
-            if talent_roll == 2:
-                weight += 1
-                gear.append(random.choice(MAGIC_ITEMS))
-            elif (3 <= talent_roll <= 6) or talent_roll == 12:
-                if intelligence < 18:
-                    intelligence += 2
-                else:
-                    spellcasting_bonus += 1
-            elif 7 <= talent_roll <= 9:
-                advantage_spells.add(
-                    random.choice([x for x in spells if x not in advantage_spells])
-                )
-            elif 10 <= talent_roll <= 11:
-                spells.add(random.choice([x for x in WIZARD_SPELLS if x not in spells]))
-        if spellcasting_bonus:
-            talents.append(f"+{spellcasting_bonus} to wizard spellcasting checks")
-    elif character_class == CharacterClass.KNIGHT_OF_ST_YDRIS:
-        race = random.choice(
-            [
-                Race.HUMAN,
-                Race.HALF_ORC,
-                Race.DWARF,
-            ]
-        )
-        languages = get_racial_languages(race)
-        languages.add("diabolic")
-        demonic_possession_bonus = 1
-        spellcasting_bonus = 0
-        melee_bonus = 0
-        for talent_roll in make_talent_rolls(race):
-            if talent_roll in [2, 12]:
-                demonic_possession_bonus += 1
-            elif 3 <= talent_roll <= 6:
-                melee_bonus += 1
-            elif 7 <= talent_roll <= 9:
-                if strength < 18:
-                    strength += 2
-                elif constitution < 18:
-                    constitution += 2
-                else:
-                    dexterity += 2
-            elif 10 <= talent_roll <= 11:
-                if charisma < 18:
-                    charisma += 2
-                else:
-                    spellcasting_bonus += 1
-        if spellcasting_bonus:
-            talents.append(f"+{spellcasting_bonus} to witch spellcasting checks")
-        if melee_bonus:
-            talents.append(f"+{melee_bonus} to melee attacks")
-        talents.append(
-            f"demonic possession: 3/day, gain a {demonic_possession_bonus} "
+    if ctx.bonuses[Bonus.DEMONIC_POSSESSION]:
+        ctx.talents.append(
+            f"demonic possession: 3/day, gain a {ctx.bonuses[Bonus.DEMONIC_POSSESSION]} "
             + "half-level bonus to damage rolls for 3 rounds"
         )
-    elif character_class == CharacterClass.WARLOCK:
-        race = random.choice(
-            [
-                Race.HUMAN,
-                Race.HALF_ORC,
-                Race.DWARF,
-                Race.ELF,
-                Race.GOBLIN,
-                Race.HALFLING,
-            ]
+    if ctx.bonuses[Bonus.KYTHEROS_REROLL]:
+        ctx.talents.append(
+            f"{ctx.bonuses[Bonus.KYTHEROS_REROLL]}/day, force the GM to reroll a single roll"
         )
-        languages = get_racial_languages(race)
-        # this is a complicated damn class
-        melee_bonus = 0
-        armor_bonus = 0
-        if not [
-            x for x in [strength, dexterity, intelligence, wisdom, charisma] if x >= 10
-        ]:
-            # true scrubs serve the slime god
-            talents.append("warlock of Mugdulblub")
-            hd_bonus = 0
-            for talent_roll in make_talent_rolls(race):
-                if talent_roll == 2:
-                    talents.append(
-                        "1/day, turn into a crawling puddle of slime for 3 rounds"
-                    )
-                elif 3 <= talent_roll <= 7:
-                    hd_bonus += 2
-                elif (8 <= talent_roll <= 9) or talent_roll == 12:
-                    if constitution < 18:
-                        constitution += 2
-                    else:
-                        dexterity += 2
-                elif 10 <= talent_roll <= 11:
-                    talents.append(
-                        f"immune to {random.choice(['cold', 'acid', 'poison'])}"
-                    )
-            if hd_bonus:
-                talents.append(f"Maximize {hd_bonus} hit dice rolls (prior or future)")
-
-        elif best[0] == "strength":
-            talents.append("warlock of Almazzat")
-
-            # special-case logic - need to reroll if we get initiative advantage twice
-            while True:
-                talent_rolls = make_talent_rolls(race)
-                if len(talent_rolls) == 1:
-                    break
-                if not all((x in [10, 11] for x in talent_rolls)):
-                    break
-
-            adv_bonus = 0
-            for talent_roll in talent_rolls:
-                if talent_roll == 2:
-                    adv_bonus += 1
-                elif 3 <= talent_roll <= 7:
-                    melee_bonus += 1
-                elif (8 <= talent_roll <= 9) or talent_roll == 12:
-                    if strength < 18:
-                        strength += 2
-                    else:
-                        melee_bonus += 1
-                elif 10 <= talent_roll <= 11:
-                    talents.append("advantage on initiative rolls")
-            if adv_bonus:
-                talents.append(
-                    f"{adv_bonus}/day, gain advantage on melee attacks for 3 rounds"
-                )
-        elif best[0] == "wisdom":
-            talents.append("warlock of Kytheros")
-
-            while True:
-                talent_rolls = make_talent_rolls(race)
-                if len(talent_rolls) == 1:
-                    break
-                if not all((x in [10, 11] for x in talent_rolls)):
-                    break
-            roll_bonus = 0
-            for talent_roll in talent_rolls:
-                if talent_roll == 2:
-                    roll_bonus += 1
-                elif 3 <= talent_roll <= 7:
-                    armor_bonus += 1
-                elif (8 <= talent_roll <= 9) or talent_roll == 12:
-                    if wisdom < 18:
-                        wisdom += 2
-                    elif dexterity < 18:
-                        dexterity += 2
-                    else:
-                        strength += 2
-                elif 10 <= talent_roll <= 11:
-                    talents.append("3/day, add WIS bonus to any roll")
-            if roll_bonus:
-                talents.append(f"{roll_bonus}/day, force GM to reroll")
-        elif best[0] == "intelligence":
-            talents.append("warlock of Shune the Vile")
-            xp_bonus = 0
-            mind_bonus = 0
-            for talent_roll in make_talent_rolls(race):
-                if talent_roll == 2:
-                    mind_bonus += 1
-                elif (3 <= talent_roll <= 7) or talent_roll == 12:
-                    spells.add(
-                        random.choice([x for x in WIZARD_SPELLS if x not in spells])
-                    )
-                elif 8 <= talent_roll <= 9:
-                    if intelligence < 18:
-                        intelligence += 2
-                    else:
-                        dexterity += 2
-                elif 10 <= talent_roll <= 11:
-                    xp_bonus += 1
-            if xp_bonus:
-                talents.append(f"+{xp_bonus} xp on learning a valuable secret")
-            if mind_bonus:
-                talents.append(
-                    f"{mind_bonus}/day, read the mind of a creature you touch for 3 rounds"
-                )
-        elif best[0] == "dexterity":
-            talents.append("warlock of Titania")
-            while True:
-                talent_rolls = make_talent_rolls(race)
-                if len(talent_rolls) == 1:
-                    break
-                if not all((x in [10, 11] for x in talent_rolls)):
-                    break
-            range_bonus = 0
-            for talent_roll in talent_rolls:
-                if talent_roll == 2:
-                    talents.append(
-                        "1/day, hypnotize a 5 HD or less creature for 3 rounds"
-                    )
-                elif 3 <= talent_roll <= 7:
-                    if "can use a longbow" in talents:
-                        range_bonus += 1
-                    else:
-                        talents.append("can use a longbow")
-                elif (8 <= talent_roll <= 9) or talent_roll == 12:
-                    if dexterity < 18:
-                        dexterity += 2
-                    else:
-                        charisma += 2
-                elif 10 <= talent_roll <= 11:
-                    talents.append("hostile spells that target you are hard to cast")
-            if range_bonus:
-                talents.append(f"+{range_bonus} to ranged attack rolls")
-        elif best[0] == "charisma":
-            # charisma is not actually valuable here,
-            # but with a little self-esteem you avoid the slime god
-            talents.append("warlock of The Willowman")
-            morale_bonus = 0
-            teleport_bonus = 0
-            for talent_roll in make_talent_rolls(race):
-                if talent_roll == 2:
-                    teleport_bonus += 1
-                elif 3 <= talent_roll <= 7:
-                    melee_bonus += 1
-                elif (8 <= talent_roll <= 9) or talent_roll == 12:
-                    if strength < 18:
-                        strength += 2
-                    else:
-                        dexterity += 2
-                elif 10 <= talent_roll <= 11:
-                    morale_bonus += 1
-            if teleport_bonus:
-                talents.append(
-                    f"{teleport_bonus}/day, teleport to a far location you see as your move"
-                )
-            if morale_bonus:
-                talents.append(
-                    f"{morale_bonus}/day, force a close being to check morale, even if immune"
-                )
-        else:
-            raise Exception("should not get here")
-
-        if melee_bonus:
-            talents.append(f"+{melee_bonus} to melee attacks")
-        if armor_bonus:
-            talents.append(f"+{armor_bonus} to AC")
-    elif character_class == CharacterClass.WITCH:
-        race = random.choice(
-            [
-                Race.HUMAN,
-                Race.ELF,
-                Race.GOBLIN,
-                Race.HALFLING,
-            ]
+    if ctx.bonuses[Bonus.MELEE_ATTACK]:
+        ctx.talents.append(f"+{ctx.bonuses[Bonus.MELEE_ATTACK]} to melee attacks")
+    if ctx.bonuses[Bonus.MUGDULBLUB_HD]:
+        ctx.talents.append(
+            f"Maximize {ctx.bonuses[Bonus.MUGDULBLUB_HD]} hit dice rolls (prior or future)"
         )
-        languages = get_racial_languages(race) | {"diabolic", "primoridal", "sylvan"}
-        talents.append(
-            "familiar: you have a little buddy, it speaks common and you can cast spells through it"
+    if ctx.bonuses[Bonus.MUGDULBLUB_SLIME]:
+        ctx.talents.append(
+            f"{ctx.bonuses[Bonus.MUGDULBLUB_SLIME]}/day, turn into a "
+            + "crawling puddle of slime for 3 rounds"
+        )
+    if ctx.bonuses[Bonus.PLATE_ARMOR]:
+        ctx.talents.append(
+            f"+{ctx.bonuses[Bonus.PLATE_ARMOR]} to AC while wearing plate armor"
+        )
+    if ctx.bonuses[Bonus.RANGED_ATTACK]:
+        ctx.talents.append(f"+{ctx.bonuses[Bonus.RANGED_ATTACK]} to ranged attacks")
+    if ctx.bonuses[Bonus.SHUNE_MIND]:
+        ctx.talents.append(
+            f"{ctx.bonuses[Bonus.SHUNE_MIND]}/day, read the mind "
+            + "of a creature you touch for 3 rounds"
+        )
+    if ctx.bonuses[Bonus.TITANIA_HYPNOTIZE]:
+        ctx.talents.append(
+            f"{ctx.bonuses[Bonus.TITANIA_HYPNOTIZE]}/day, "
+            + "hypnotize a 5 HD or less creature for 3 rounds"
         )
 
-        while len(spells) < 3:
-            spells.add(random.choice(WITCH_SPELLS))
+    if ctx.bonuses[Bonus.SHUNE_XP]:
+        ctx.talents.append(
+            f"+{ctx.bonuses[Bonus.SHUNE_XP]} XP whenever you learn a valuable or significant secret"
+        )
+    if ctx.bonuses[Bonus.SPELL_CASTING]:
+        ctx.talents.append(
+            f"+{ctx.bonuses[Bonus.SPELL_CASTING]} to spellcasting checks"
+        )
+    if ctx.bonuses[Bonus.WILLOWMAN_MORALE]:
+        ctx.talents.append(
+            f"{ctx.bonuses[Bonus.WILLOWMAN_MORALE]}/day, "
+            + "force a close being to check morale, even if immune"
+        )
+    if ctx.bonuses[Bonus.WILLOWMAN_TELEPORT]:
+        ctx.talents.append(
+            f"{ctx.bonuses[Bonus.WILLOWMAN_TELEPORT]}/day, "
+            + "teleport to a far location you see as your move"
+        )
+    if ctx.bonuses[Bonus.WITCH_TELEPORT]:
+        ctx.talents.append(
+            f"{ctx.bonuses[Bonus.WITCH_TELEPORT]}/day, teleport "
+            + "to your familiar's location as a move"
+        )
 
-        spellcasting_bonus = 0
-        teleport_bonus = 0
-        for talent_roll in make_talent_rolls(race):
-            if talent_roll == 2:
-                teleport_bonus += 1
-            elif (3 <= talent_roll <= 7) or talent_roll == 12:
-                if charisma < 18:
-                    charisma += 2
-                else:
-                    spellcasting_bonus += 1
-            elif 8 <= talent_roll <= 9:
-                advantage_spells.add(
-                    random.choice([x for x in spells if x not in advantage_spells])
-                )
-            elif 10 <= talent_roll <= 11:
-                spells.add(random.choice([x for x in WITCH_SPELLS if x not in spells]))
-        if spellcasting_bonus:
-            talents.append(f"+{spellcasting_bonus} to witch spellcasting checks")
-        if teleport_bonus:
-            talents.append(f"{teleport_bonus}/day teleport to familiar's location")
-
-    for spell in advantage_spells:
-        talents.append(f"advantage on casting {spell}")
-
-    # racial bonuses
-    if race is Race.ELF:
-        if character_class in [CharacterClass.WIZARD, CharacterClass.CLERIC]:
-            talents.append("farsight: +1 to spellcasting")
-        else:
-            talents.append("farsight: +1 to ranged attacks")
-    elif race is Race.GOBLIN:
-        talents.append("keen senses: can't be surprised")
-    elif race is Race.HALFLING:
-        talents.append("stealthy: 1/day can become invisible for three rounds")
-    elif race is Race.HALF_ORC:
-        talents.append("mighty: +1 to melee attack and damage")
-
-    assert len(set(talents)) == len(talents), "duplicate talents"
+    assert len(set(ctx.talents)) == len(ctx.talents), "duplicate talents"
 
     gold = float(roll("2d6") * 5)
-    gear_slots = max([10, strength]) + (
-        STAT_BONUS_TABLE[constitution]
-        if character_class is CharacterClass.FIGHTER
+    gear_slots = max([10, ctx.stats["strength"]]) + (
+        STAT_BONUS_TABLE[ctx.stats["constitution"]]
+        if (
+            character_class is Fighter
+            and STAT_BONUS_TABLE[ctx.stats["constitution"]] > 0
+        )
         else 0
     )
-
+    gear = copy.deepcopy(ctx.gear)
+    weight = ctx.gear_weight
     # everyone gets a crawling kit if they can afford it
     if gold >= 7:
         gear += [
@@ -959,12 +1388,12 @@ def generate_character_sheet() -> CharacterSheet:
 
     # good to have a weapon
     affordable_weapons = [
-        x for x in WEAPON_PREFERENCES[character_class] if PRICE_TABLE[x] <= gold
+        x for x in character_class.weapon_preferences if PRICE_TABLE[x] <= gold
     ]
     assert affordable_weapons, "no affordable weapons"
     if affordable_weapons and weight < gear_slots:
         best_weapon = affordable_weapons[0]
-        if best_weapon == "bastard sword" and race is Race.DWARF:
+        if best_weapon == "bastard sword" and race is Dwarf:
             best_weapon = "greataxe"
         gear += [best_weapon]
         weight += 1
@@ -972,13 +1401,7 @@ def generate_character_sheet() -> CharacterSheet:
 
     # get a shield if plausible
     if (
-        character_class
-        in (
-            CharacterClass.FIGHTER,
-            CharacterClass.CLERIC,
-            CharacterClass.KNIGHT_OF_ST_YDRIS,
-            CharacterClass.WARLOCK,
-        )
+        character_class in (Fighter, Cleric, KnightOfStYdris, Warlock)
         and gold >= 10
         and weight < gear_slots
     ):
@@ -988,15 +1411,7 @@ def generate_character_sheet() -> CharacterSheet:
 
     # get leather armor if plausible
     if (
-        character_class
-        in (
-            CharacterClass.FIGHTER,
-            CharacterClass.CLERIC,
-            CharacterClass.THIEF,
-            CharacterClass.KNIGHT_OF_ST_YDRIS,
-            CharacterClass.WARLOCK,
-            CharacterClass.WITCH,
-        )
+        character_class in (Fighter, Cleric, Thief, KnightOfStYdris, Warlock, Witch)
         and gold >= 10
         and weight < gear_slots
     ):
@@ -1006,7 +1421,7 @@ def generate_character_sheet() -> CharacterSheet:
 
     gear += [f"{gold} gold pieces"]
 
-    talents.append(
+    ctx.talents.append(
         random.choice(
             [
                 "urchin: grew up in a bad part of a city",
@@ -1036,17 +1451,12 @@ def generate_character_sheet() -> CharacterSheet:
     character = Character(
         race=race,
         character_class=character_class,
-        hit_points=roll(HIT_DICE_TABLE[character_class], advantage=(race is Race.DWARF))
-        + max(STAT_BONUS_TABLE[constitution], 1),
-        strength=strength,
-        dexterity=dexterity,
-        constitution=constitution,
-        wisdom=wisdom,
-        intelligence=intelligence,
-        charisma=charisma,
-        spells=spells,
-        talents=talents,
-        languages=languages,
+        hit_points=roll(character_class.hit_dice, advantage=(race is Dwarf))
+        + max(STAT_BONUS_TABLE[ctx.stats["constitution"]], 1),
+        stats=stats,
+        spells=ctx.spells,
+        talents=ctx.talents,
+        languages=ctx.languages,
         name=random.choice(NAMES[race]),
     )
 
@@ -1072,4 +1482,4 @@ def generate_party(size=4, unique_classes=True) -> List[CharacterSheet]:
     return members
 
 
-print("\n---\n".join(x.as_markdown() for x in generate_party(size=3, unique_classes=False)))
+print("\n---\n".join(x.as_markdown() for x in generate_party(size=6)))
