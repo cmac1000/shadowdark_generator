@@ -437,7 +437,7 @@ class CharacterClass:
 
     @staticmethod
     def get_features_for_roll(
-        talent_roll: int, ctx: FeatureContext, race: Race
+        talent_roll: int, ctx: FeatureContext, race: Type[Race]
     ) -> List[Feature]:
         """
         Returns a feature for a character class
@@ -480,7 +480,7 @@ class Cleric(CharacterClass):
 
     @staticmethod
     def get_features_for_roll(
-        talent_roll: int, ctx: FeatureContext, race: Race
+        talent_roll: int, ctx: FeatureContext, race: Type[Race]
     ) -> List[Feature]:
         """
         Returns a feature for a character class
@@ -539,7 +539,7 @@ class Fighter(CharacterClass):
 
     @staticmethod
     def get_features_for_roll(
-        talent_roll: int, ctx: FeatureContext, race: Race
+        talent_roll: int, ctx: FeatureContext, race: Type[Race]
     ) -> List[Feature]:
         """
         Returns a feature for a character class
@@ -609,7 +609,7 @@ class Thief(CharacterClass):
 
     @staticmethod
     def get_features_for_roll(
-        talent_roll: int, ctx: FeatureContext, race: Race
+        talent_roll: int, ctx: FeatureContext, race: Type[Race]
     ) -> List[Feature]:
         """
         Returns a feature for a character class
@@ -659,7 +659,7 @@ class Wizard(CharacterClass):
 
     @staticmethod
     def get_features_for_roll(
-        talent_roll: int, ctx: FeatureContext, race: Race
+        talent_roll: int, ctx: FeatureContext, race: Type[Race]
     ) -> List[Feature]:
         """
         Returns a feature for a character class
@@ -717,7 +717,7 @@ class KnightOfStYdris(CharacterClass):
 
     @staticmethod
     def get_features_for_roll(
-        talent_roll: int, ctx: FeatureContext, race: Race
+        talent_roll: int, ctx: FeatureContext, race: Type[Race]
     ) -> List[Feature]:
         """
         Returns a feature for a character class
@@ -775,7 +775,7 @@ class SlimeWarlock(Warlock):
 
     @staticmethod
     def get_features_for_roll(
-        talent_roll: int, ctx: FeatureContext, race: Race
+        talent_roll: int, ctx: FeatureContext, race: Type[Race]
     ) -> List[Feature]:
         """
         Returns a feature for a character class
@@ -833,7 +833,7 @@ class DemonWarlock(Warlock):
 
     @staticmethod
     def get_features_for_roll(
-        talent_roll: int, ctx: FeatureContext, race: Race
+        talent_roll: int, ctx: FeatureContext, race: Type[Race]
     ) -> List[Feature]:
         """
         Returns a feature for a character class
@@ -879,7 +879,7 @@ class FateWarlock(Warlock):
 
     @staticmethod
     def get_features_for_roll(
-        talent_roll: int, ctx: FeatureContext, race: Race
+        talent_roll: int, ctx: FeatureContext, race: Type[Race]
     ) -> List[Feature]:
         """
         Returns a feature for a character class
@@ -914,7 +914,7 @@ class VileWarlock(Warlock):
 
     @staticmethod
     def get_features_for_roll(
-        talent_roll: int, ctx: FeatureContext, race: Race
+        talent_roll: int, ctx: FeatureContext, race: Type[Race]
     ) -> List[Feature]:
         """
         Returns a feature for a character class
@@ -966,7 +966,7 @@ class FeyWarlock(Warlock):
 
     @staticmethod
     def get_features_for_roll(
-        talent_roll: int, ctx: FeatureContext, race: Race
+        talent_roll: int, ctx: FeatureContext, race: Type[Race]
     ) -> List[Feature]:
         """
         Returns a feature for a character class
@@ -1003,7 +1003,7 @@ class WillowWarlock(Warlock):
 
     @staticmethod
     def get_features_for_roll(
-        talent_roll: int, ctx: FeatureContext, race: Race
+        talent_roll: int, ctx: FeatureContext, race: Type[Race]
     ) -> List[Feature]:
         """
         Returns a feature for a character class
