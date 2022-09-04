@@ -219,12 +219,23 @@ class FeatureContext:
 
 
 class Race:
+    """
+    The ancestry or heritage of a character
+    """
+
     @staticmethod
     def get_default_features(character_class: Type[CharacterClass]) -> List[Feature]:
+        """
+        Returns the list of features shared by all members of this race.
+        """
         raise NotImplementedError()
 
 
 class Human(Race):
+    """
+    A standard humans, adaptable and common
+    """
+
     name = "Human"
     names = [
         "Zali",
@@ -258,6 +269,10 @@ class Human(Race):
 
 
 class Dwarf(Race):
+    """
+    A stocky, hardy soul
+    """
+
     name = "Dwarf"
     names = [
         "Hilde",
@@ -282,6 +297,10 @@ class Dwarf(Race):
 
 
 class Elf(Race):
+    """
+    Rare, long-lived, and tall
+    """
+
     name = "Elf"
     names = [
         "Eliara",
@@ -312,6 +331,10 @@ class Elf(Race):
 
 
 class HalfOrc(Race):
+    """
+    A powerful specimen
+    """
+
     name = "Half-Orc"
     names = [
         "Vara",
@@ -331,6 +354,10 @@ class HalfOrc(Race):
 
 
 class Goblin(Race):
+    """
+    Quick, small, and keen
+    """
+
     name = "Goblin"
     names = [
         "Iggs",
@@ -350,6 +377,10 @@ class Goblin(Race):
 
 
 class Halfling(Race):
+    """
+    Quick, small, and sneaky
+    """
+
     name = "Halfling"
     names = [
         "Willow",
@@ -370,19 +401,29 @@ class Halfling(Race):
 
 
 class CharacterClass:
+    """
+    A character's specialization
+    """
+
     hit_dice: str
     name: str
 
     @staticmethod
     def choose_race() -> Type[Race]:
+        """
+        Chooses a race well-suited to this class
+        """
         raise NotImplementedError
 
     @staticmethod
     def get_default_features(race: Type[Race], alignment: str) -> List[Feature]:
+        """
+        Returns the list of features shared by all class members
+        """
         raise NotImplementedError
 
     @staticmethod
-    def requires_reroll(talent_rolls: Iterable[int]) -> bool:
+    def requires_reroll(_) -> bool:
         """
         Returns whether or not a character class requires a reroll
         :param: talent_rolls: rolls for talent
@@ -391,7 +432,7 @@ class CharacterClass:
         return False
 
     @staticmethod
-    def get_features_for_rolls(
+    def get_features_for_roll(
         talent_roll: int, ctx: FeatureContext, race: Race
     ) -> List[Feature]:
         """
@@ -405,6 +446,10 @@ class CharacterClass:
 
 
 class Cleric(CharacterClass):
+    """
+    A stalwart channeler of divine magic
+    """
+
     name = "Cleric"
     hit_dice = "1d6"
     weapon_preferences = ["longsword", "mace", "club"]
