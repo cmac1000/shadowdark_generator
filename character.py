@@ -190,6 +190,11 @@ class FeatureContext:
         self.stats = copy.deepcopy(stats)
 
     def apply_feature(self, feature: Feature) -> None:
+        """
+        Alters the character according to the rules for a particular
+        feature
+        """
+
         if isinstance(feature, BonusFeature):
             self.bonuses[feature.bonus] += feature.value
         elif isinstance(feature, ImmunityFeature):
