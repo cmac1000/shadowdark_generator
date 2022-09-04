@@ -1,4 +1,4 @@
-# pylint: disable=too-many-lines, too-many-instance-attributes, too-many-branches, too-many-locals, too-many-statements, too-few-public-methods
+# pylint: disable=too-many-lines, too-many-instance-attributes, too-many-branches, too-many-locals, too-many-statements, too-few-public-methods, too-many-return-statements
 """
 Generates a series of markdown-formatted character sheets, suitable
 for adventuring using the Shadowdark system.
@@ -546,21 +546,21 @@ class Fighter(CharacterClass):
         if talent_roll == 2:
             if "longbow" not in ctx.weapon_masteries:
                 return [WeaponMasteryFeature(weapon="longbow")]
-            else:
-                return [WeaponMasteryFeature(weapon="greatsword")]
+            return [WeaponMasteryFeature(weapon="greatsword")]
 
         if 3 <= talent_roll <= 6 or talent_roll == 12:
             return [
                 BonusFeature(bonus=Bonus.MELEE_ATTACK, value=1),
                 BonusFeature(bonus=Bonus.RANGED_ATTACK, value=1),
             ]
+
         if 7 <= talent_roll <= 9:
             if ctx.stats["strength"] < 18:
                 return [StatFeature(stat="strength", value=2)]
             if ctx.stats["constitution"] < 18:
                 return [StatFeature(stat="constitution", value=2)]
-            else:
-                return [StatFeature(stat="dexterity", value=2)]
+            return [StatFeature(stat="dexterity", value=2)]
+
         return [BonusFeature(bonus=Bonus.PLATE_ARMOR, value=1)]
 
 
