@@ -10,7 +10,7 @@ https://www.thearcanelibrary.com/pages/shadowdark
 # Usage
 
 ```
-usage: character.py [-h] [--size [SIZE]] [--unique]
+usage: party.py [-h] [--size [SIZE]] [--unique]
 
 Generate characters for use with the Shadowdark RPG
 
