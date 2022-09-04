@@ -503,6 +503,9 @@ class Cleric(CharacterClass):
 
 
 class Fighter(CharacterClass):
+    """
+    A valiant warrior
+    """
     name = "Fighter"
     hit_dice = "1d8"
     weapon_preferences = ["bastard sword", "longsword", "spear", "dagger", "club"]
