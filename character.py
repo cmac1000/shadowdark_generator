@@ -5,6 +5,8 @@ for adventuring using the Shadowdark system.
 """
 from __future__ import annotations
 
+import sys
+import argparse
 import copy
 import itertools
 import random
@@ -506,6 +508,7 @@ class Fighter(CharacterClass):
     """
     A valiant warrior
     """
+
     name = "Fighter"
     hit_dice = "1d8"
     weapon_preferences = ["bastard sword", "longsword", "spear", "dagger", "club"]
@@ -568,6 +571,7 @@ class Thief(CharacterClass):
     """
     A sneaky customer
     """
+
     name = "Thief"
     hit_dice = "1d4"
     weapon_preferences = ["shortsword", "dagger", "club"]
@@ -635,6 +639,7 @@ class Wizard(CharacterClass):
     """
     An arcane spellcaster
     """
+
     name = "Wizard"
     hit_dice = "1d4"
     weapon_preferences = ["staff", "dagger"]
@@ -686,6 +691,7 @@ class KnightOfStYdris(CharacterClass):
     """
     A demon-touched combatant
     """
+
     name = "Knight of St. Ydris"
     hit_dice = "1d6"
     weapon_preferences = [
@@ -740,6 +746,7 @@ class Warlock(CharacterClass):
     """
     A lowly servitor of a terrible being
     """
+
     name = "Warlock"
     hit_dice = "1d6"
     weapon_preferences = ["longsword", "mace", "dagger", "club"]
@@ -752,10 +759,12 @@ class Warlock(CharacterClass):
     def get_default_features(race: Type[Race], alignment: str) -> List[Feature]:
         raise NotImplementedError()
 
+
 class SlimeWarlock(Warlock):
     """
     A servant of the slime god; likely insane
     """
+
     name = "Slime Warlock"
 
     @staticmethod
@@ -800,6 +809,7 @@ class DemonWarlock(Warlock):
     """
     A servant of the great demon
     """
+
     name = "Demon Warlock"
 
     @staticmethod
@@ -845,6 +855,7 @@ class FateWarlock(Warlock):
     """
     A servant of the guardian of fate
     """
+
     name = "Fate Warlock"
 
     @staticmethod
@@ -892,6 +903,7 @@ class VileWarlock(Warlock):
     """
     A truly vile customer
     """
+
     name = "Vile Warlock"
 
     @staticmethod
@@ -930,6 +942,7 @@ class FeyWarlock(Warlock):
     """
     Possibly an amateur poet
     """
+
     name = "Fey Warlock"
 
     @staticmethod
@@ -979,6 +992,7 @@ class WillowWarlock(Warlock):
     """
     Ride with the moon in the dead of night
     """
+
     name = "Willow Warlock"
 
     @staticmethod
@@ -1011,6 +1025,7 @@ class Witch(CharacterClass):
     """
     Probably just misunderstood
     """
+
     name = "Witch"
     hit_dice = "1d4"
     weapon_preferences = ["dagger", "staff"]
@@ -1604,4 +1619,21 @@ def generate_party(size=4, unique_classes=True) -> List[CharacterSheet]:
     return members
 
 
-print("\n---\n".join(x.as_markdown() for x in generate_party(size=6)))
+if __name__ == "__main__":
+    parser = argparse.ArgumentParser(
+        description="Generate characters for use with the Shadowdark RPG"
+    )
+    parser.add_argument("--size", nargs="?", default=6, type=int, help="number of characters to generage")
+    parser.add_argument('--unique', dest='unique', default=False, action='store_true', help="enforce character-class uniqueness")
+
+    args = parser.parse_args()
+
+    if args.unique and args.size > 7:
+        print(f"{args.size} is too many characters for unique classes", file=sys.stderr)
+        sys.exit(1)
+
+    print(
+        "\n---\n".join(
+            x.as_markdown() for x in generate_party(size=args.size, unique_classes=args.unique)
+        )
+    )

@@ -10,10 +10,17 @@ https://www.thearcanelibrary.com/pages/shadowdark
 # Usage
 
 ```
-python character.py > party.md
+usage: character.py [-h] [--size [SIZE]] [--unique]
+
+Generate characters for use with the Shadowdark RPG
+
+optional arguments:
+  -h, --help     show this help message and exit
+  --size [SIZE]  number of characters to generage
+  --unique       enforce character-class uniqueness
 ```
 
-Will generate a markdown-formatted list of six characters with unique classes, generated according to the rules in the Shadowdark Player Quickstart Guide.
+Called with no arguments, will generate a markdown-formatted list of six characters, generated according to the rules in the Shadowdark Player Quickstart Guide.
 
 # Example Output
 
