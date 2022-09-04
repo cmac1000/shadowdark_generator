@@ -59,58 +59,104 @@ class Bonus(Enum):
 
 
 class Feature:
+    """
+    An attribute that modifies the mechanics of a character
+    """
+
     pass
 
 
 @dataclass
 class BonusFeature(Feature):
+    """
+    A feature that can be acquired multiple times, additively
+    """
+
     bonus: Bonus
     value: int
 
 
 @dataclass
 class ImmunityFeature(Feature):
+    """
+    Grants immunity from a particular type of damage
+    """
+
     damage_immunity: str
 
 
 @dataclass
 class GearFeature(Feature):
+    """
+    Grants a piece of equipment
+    """
+
     gear: str
     weight: int
 
 
 @dataclass
 class LanguageFeature(Feature):
+    """
+    Grants knowledge of a language
+    """
+
     language: Language
 
 
 @dataclass
 class SpellMasteryFeature(Feature):
+    """
+    Grants mastery of a spell; this gives the character
+    advantage on casting that spell.
+    """
+
     spell: Spell
 
 
 @dataclass
 class SpellFeature(Feature):
+    """
+    Grants knowlege of a spell, and the ability to cast it
+    """
+
     spell: Spell
 
 
 @dataclass
 class MiscellaneousFeature(Feature):
+    """
+    An unusual feature which is hard to categorize
+    """
+
     name: str
 
 
 @dataclass
 class WeaponMasteryFeature(Feature):
+    """
+    Grants mastery for a particular type of weapon - this gives
+    bonuses to damage for hits made using that weapon type
+    """
+
     weapon: str
 
 
 @dataclass
 class WeaponProficiencyFeature(Feature):
+    """
+    Grants the ability to use a particular type of weapon
+    """
+
     weapon: str
 
 
 @dataclass
 class StatFeature(Feature):
+    """
+    Increases a particular character statistic
+    """
+
     stat: str
     value: int
 
