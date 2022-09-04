@@ -63,8 +63,6 @@ class Feature:
     An attribute that modifies the mechanics of a character
     """
 
-    pass
-
 
 @dataclass
 class BonusFeature(Feature):
