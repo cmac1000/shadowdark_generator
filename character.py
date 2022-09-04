@@ -5,11 +5,11 @@ for adventuring using the Shadowdark system.
 """
 from __future__ import annotations
 
-import sys
 import argparse
 import copy
 import itertools
 import random
+import sys
 from collections import defaultdict
 from dataclasses import dataclass
 from enum import Enum
@@ -1623,8 +1623,20 @@ if __name__ == "__main__":
     parser = argparse.ArgumentParser(
         description="Generate characters for use with the Shadowdark RPG"
     )
-    parser.add_argument("--size", nargs="?", default=6, type=int, help="number of characters to generage")
-    parser.add_argument('--unique', dest='unique', default=False, action='store_true', help="enforce character-class uniqueness")
+    parser.add_argument(
+        "--size",
+        nargs="?",
+        default=6,
+        type=int,
+        help="number of characters to generage",
+    )
+    parser.add_argument(
+        "--unique",
+        dest="unique",
+        default=False,
+        action="store_true",
+        help="enforce character-class uniqueness",
+    )
 
     args = parser.parse_args()
 
@@ -1634,6 +1646,7 @@ if __name__ == "__main__":
 
     print(
         "\n---\n".join(
-            x.as_markdown() for x in generate_party(size=args.size, unique_classes=args.unique)
+            x.as_markdown()
+            for x in generate_party(size=args.size, unique_classes=args.unique)
         )
     )
