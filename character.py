@@ -624,8 +624,7 @@ class Thief(CharacterClass):
                 return [StatFeature(stat="dexterity", value=2)]
             if ctx.stats["charisma"] < 18:
                 return [StatFeature(stat="charisma", value=2)]
-            else:
-                return [StatFeature(stat="constitution", value=2)]
+            return [StatFeature(stat="constitution", value=2)]
         return [
             BonusFeature(bonus=Bonus.MELEE_ATTACK, value=1),
             BonusFeature(bonus=Bonus.RANGED_ATTACK, value=1),
@@ -633,6 +632,9 @@ class Thief(CharacterClass):
 
 
 class Wizard(CharacterClass):
+    """
+    An arcane spellcaster
+    """
     name = "Wizard"
     hit_dice = "1d4"
     weapon_preferences = ["staff", "dagger"]
@@ -664,8 +666,7 @@ class Wizard(CharacterClass):
         if 3 <= talent_roll <= 7 or talent_roll == 12:
             if ctx.stats["intelligence"] < 18:
                 return [StatFeature(stat="intelligence", value=2)]
-            else:
-                return [BonusFeature(bonus=Bonus.SPELL_CASTING, value=1)]
+            return [BonusFeature(bonus=Bonus.SPELL_CASTING, value=1)]
         if 8 <= talent_roll <= 9:
             return [
                 SpellMasteryFeature(
@@ -682,6 +683,9 @@ class Wizard(CharacterClass):
 
 
 class KnightOfStYdris(CharacterClass):
+    """
+    A demon-touched combatant
+    """
     name = "Knight of St. Ydris"
     hit_dice = "1d6"
     weapon_preferences = [
@@ -726,15 +730,16 @@ class KnightOfStYdris(CharacterClass):
                 return [StatFeature(stat="strength", value=2)]
             if ctx.stats["constitution"] < 18:
                 return [StatFeature(stat="constitution", value=2)]
-            else:
-                return [StatFeature(stat="dexterity", value=2)]
+            return [StatFeature(stat="dexterity", value=2)]
         if ctx.stats["charisma"] < 18:
             return [StatFeature(stat="charisma", value=2)]
-        else:
-            return [BonusFeature(Bonus.SPELL_CASTING, 1)]
+        return [BonusFeature(Bonus.SPELL_CASTING, 1)]
 
 
 class Warlock(CharacterClass):
+    """
+    A lowly servitor of a terrible being
+    """
     name = "Warlock"
     hit_dice = "1d6"
     weapon_preferences = ["longsword", "mace", "dagger", "club"]
@@ -743,8 +748,14 @@ class Warlock(CharacterClass):
     def choose_race() -> Type[Race]:
         return random.choice([Human, HalfOrc, Dwarf, Elf, Goblin, Halfling])
 
+    @staticmethod
+    def get_default_features(race: Type[Race], alignment: str) -> List[Feature]:
+        raise NotImplementedError()
 
 class SlimeWarlock(Warlock):
+    """
+    A servant of the slime god; likely insane
+    """
     name = "Slime Warlock"
 
     @staticmethod
@@ -771,8 +782,7 @@ class SlimeWarlock(Warlock):
         if (8 <= talent_roll <= 9) or talent_roll == 12:
             if ctx.stats["constitution"] < 18:
                 return [StatFeature(stat="constitution", value=2)]
-            else:
-                return [StatFeature(stat="dexterity", value=2)]
+            return [StatFeature(stat="dexterity", value=2)]
         return [
             ImmunityFeature(
                 damage_immunity=random.choice(
@@ -787,6 +797,9 @@ class SlimeWarlock(Warlock):
 
 
 class DemonWarlock(Warlock):
+    """
+    A servant of the great demon
+    """
     name = "Demon Warlock"
 
     @staticmethod
@@ -824,12 +837,14 @@ class DemonWarlock(Warlock):
         if (8 <= talent_roll <= 9) or talent_roll == 12:
             if ctx.stats["strength"] < 18:
                 return [StatFeature(stat="strength", value=2)]
-            else:
-                return [BonusFeature(Bonus.MELEE_ATTACK, 1)]
+            return [BonusFeature(Bonus.MELEE_ATTACK, 1)]
         return [MiscellaneousFeature(name="advantage on initiative checks")]
 
 
 class FateWarlock(Warlock):
+    """
+    A servant of the guardian of fate
+    """
     name = "Fate Warlock"
 
     @staticmethod
@@ -863,7 +878,7 @@ class FateWarlock(Warlock):
         if talent_roll == 2:
             return [BonusFeature(Bonus.KYTHEROS_REROLL, 1)]
         if 3 <= talent_roll <= 7:
-            [BonusFeature(Bonus.ARMOR, 1)]
+            return [BonusFeature(Bonus.ARMOR, 1)]
         if (8 <= talent_roll <= 9) or talent_roll == 12:
             if ctx.stats["wisdom"] < 18:
                 return [StatFeature(stat="wisdom", value=2)]
@@ -874,6 +889,9 @@ class FateWarlock(Warlock):
 
 
 class VileWarlock(Warlock):
+    """
+    A truly vile customer
+    """
     name = "Vile Warlock"
 
     @staticmethod
@@ -909,6 +927,9 @@ class VileWarlock(Warlock):
 
 
 class FeyWarlock(Warlock):
+    """
+    Possibly an amateur poet
+    """
     name = "Fey Warlock"
 
     @staticmethod
@@ -955,6 +976,9 @@ class FeyWarlock(Warlock):
 
 
 class WillowWarlock(Warlock):
+    """
+    Ride with the moon in the dead of night
+    """
     name = "Willow Warlock"
 
     @staticmethod
@@ -984,6 +1008,9 @@ class WillowWarlock(Warlock):
 
 
 class Witch(CharacterClass):
+    """
+    Probably just misunderstood
+    """
     name = "Witch"
     hit_dice = "1d4"
     weapon_preferences = ["dagger", "staff"]
@@ -1001,7 +1028,7 @@ class Witch(CharacterClass):
             [SpellFeature(spell=x) for x in spells]  # type: ignore
             + [
                 LanguageFeature(language=x)  # type: ignore
-                for x in {"diabolic", "primoridal", "sylvan"}
+                for x in ["diabolic", "primoridal", "sylvan"]
             ]
             + [
                 MiscellaneousFeature(  # type: ignore
@@ -1027,8 +1054,7 @@ class Witch(CharacterClass):
         if 3 <= talent_roll <= 7 or talent_roll == 12:
             if ctx.stats["charisma"] < 18:
                 return [StatFeature(stat="charisma", value=2)]
-            else:
-                return [BonusFeature(bonus=Bonus.SPELL_CASTING, value=1)]
+            return [BonusFeature(bonus=Bonus.SPELL_CASTING, value=1)]
         if 8 <= talent_roll <= 9:
             return [
                 SpellMasteryFeature(
