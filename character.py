@@ -177,6 +177,28 @@ class Race:
 
 class Human(Race):
     name = "Human"
+    names = [
+        "Zali",
+        "Bram",
+        "Clara",
+        "Nattias",
+        "Rina",
+        "Denton",
+        "Mirena",
+        "Aran",
+        "Morgan",
+        "Giralt",
+        "Tamra",
+        "Oscar",
+        "Ishana",
+        "Rogar",
+        "Jasmin",
+        "Tarin",
+        "Yuri",
+        "Malchor",
+        "Lienna",
+        "Godfrey",
+    ]
 
     @staticmethod
     def get_default_features(character_class: Type[CharacterClass]) -> List[Feature]:
@@ -188,6 +210,18 @@ class Human(Race):
 
 class Dwarf(Race):
     name = "Dwarf"
+    names = [
+        "Hilde",
+        "Torbin",
+        "Marga",
+        "Bruno",
+        "Karina",
+        "Naugrim",
+        "Brenna",
+        "Darvin",
+        "Elga",
+        "Alric",
+    ]
 
     @staticmethod
     def get_default_features(character_class: Type[CharacterClass]) -> List[Feature]:
@@ -200,6 +234,18 @@ class Dwarf(Race):
 
 class Elf(Race):
     name = "Elf"
+    names = [
+        "Eliara",
+        "Ryarn",
+        "Sariel",
+        "Tirolas",
+        "Galira",
+        "Varos",
+        "Daeniel",
+        "Axidor",
+        "Hiralia",
+        "Cyrwin",
+    ]
 
     @staticmethod
     def get_default_features(character_class: Type[CharacterClass]) -> List[Feature]:
@@ -218,6 +264,13 @@ class Elf(Race):
 
 class HalfOrc(Race):
     name = "Half-Orc"
+    names = [
+        "Vara",
+        "Gralk",
+        "Ranna",
+        "Korv",
+        "Zasha",
+    ]
 
     @staticmethod
     def get_default_features(character_class: Type[CharacterClass]) -> List[Feature]:
@@ -230,6 +283,13 @@ class HalfOrc(Race):
 
 class Goblin(Race):
     name = "Goblin"
+    names = [
+        "Iggs",
+        "Tark",
+        "Nix",
+        "Lenk",
+        "Roke",
+    ]
 
     @staticmethod
     def get_default_features(character_class: Type[CharacterClass]) -> List[Feature]:
@@ -242,6 +302,13 @@ class Goblin(Race):
 
 class Halfling(Race):
     name = "Halfling"
+    names = [
+        "Willow",
+        "Benny",
+        "Annie",
+        "Tucker",
+        "Marie",
+    ]
 
     @staticmethod
     def get_default_features(character_class: Type[CharacterClass]) -> List[Feature]:
@@ -1001,77 +1068,6 @@ MAGIC_ITEMS = [
     "true name",
 ]
 
-# TODO move into race
-NAMES = {
-    Dwarf: [
-        "Hilde",
-        "Torbin",
-        "Marga",
-        "Bruno",
-        "Karina",
-        "Naugrim",
-        "Brenna",
-        "Darvin",
-        "Elga",
-        "Alric",
-    ],
-    Elf: [
-        "Eliara",
-        "Ryarn",
-        "Sariel",
-        "Tirolas",
-        "Galira",
-        "Varos",
-        "Daeniel",
-        "Axidor",
-        "Hiralia",
-        "Cyrwin",
-    ],
-    Goblin: [
-        "Iggs",
-        "Tark",
-        "Nix",
-        "Lenk",
-        "Roke",
-    ],
-    Halfling: [
-        "Willow",
-        "Benny",
-        "Annie",
-        "Tucker",
-        "Marie",
-    ],
-    HalfOrc: [
-        "Vara",
-        "Gralk",
-        "Ranna",
-        "Korv",
-        "Zasha",
-    ],
-    Human: [
-        "Zali",
-        "Bram",
-        "Clara",
-        "Nattias",
-        "Rina",
-        "Denton",
-        "Mirena",
-        "Aran",
-        "Morgan",
-        "Giralt",
-        "Tamra",
-        "Oscar",
-        "Ishana",
-        "Rogar",
-        "Jasmin",
-        "Tarin",
-        "Yuri",
-        "Malchor",
-        "Lienna",
-        "Godfrey",
-    ],
-}
-
 
 @dataclass
 class CharacterSheet:
@@ -1457,7 +1453,7 @@ def generate_character_sheet() -> CharacterSheet:
         spells=ctx.spells,
         talents=ctx.talents,
         languages=ctx.languages,
-        name=random.choice(NAMES[race]),
+        name=random.choice(race.names),
     )
 
     return CharacterSheet(character=character, gear=gear)
