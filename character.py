@@ -565,6 +565,9 @@ class Fighter(CharacterClass):
 
 
 class Thief(CharacterClass):
+    """
+    A sneaky customer
+    """
     name = "Thief"
     hit_dice = "1d4"
     weapon_preferences = ["shortsword", "dagger", "club"]
