@@ -226,6 +226,7 @@ class Race:
     """
 
     name: str
+    names: List[str]
 
     @staticmethod
     def get_default_features(character_class: Type[CharacterClass]) -> List[Feature]:
@@ -411,6 +412,7 @@ class CharacterClass:
 
     hit_dice: str
     name: str
+    weapon_preferences: List[str]
 
     @staticmethod
     def choose_race() -> Type[Race]:
