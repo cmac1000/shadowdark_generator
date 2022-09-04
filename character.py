@@ -493,11 +493,11 @@ class Cleric(CharacterClass):
                     )
                 )
             ]
-        elif 3 <= talent_roll <= 6:
+        if 3 <= talent_roll <= 6:
             return [BonusFeature(bonus=Bonus.MELEE_ATTACK, value=1)]
-        elif (7 <= talent_roll <= 9) or talent_roll == 12:
+        if (7 <= talent_roll <= 9) or talent_roll == 12:
             return [BonusFeature(bonus=Bonus.SPELL_CASTING, value=1)]
-        elif ctx.stats["wisdom"] < 18:
+        if ctx.stats["wisdom"] < 18:
             return [StatFeature(stat="wisdom", value=2)]
         return [StatFeature(stat="strength", value=2)]
 
@@ -546,15 +546,15 @@ class Fighter(CharacterClass):
             else:
                 return [WeaponMasteryFeature(weapon="greatsword")]
 
-        elif 3 <= talent_roll <= 6 or talent_roll == 12:
+        if 3 <= talent_roll <= 6 or talent_roll == 12:
             return [
                 BonusFeature(bonus=Bonus.MELEE_ATTACK, value=1),
                 BonusFeature(bonus=Bonus.RANGED_ATTACK, value=1),
             ]
-        elif 7 <= talent_roll <= 9:
+        if 7 <= talent_roll <= 9:
             if ctx.stats["strength"] < 18:
                 return [StatFeature(stat="strength", value=2)]
-            elif ctx.stats["constitution"] < 18:
+            if ctx.stats["constitution"] < 18:
                 return [StatFeature(stat="constitution", value=2)]
             else:
                 return [StatFeature(stat="dexterity", value=2)]
@@ -609,14 +609,14 @@ class Thief(CharacterClass):
         if talent_roll == 2:
             return [MiscellaneousFeature(name="advantage on initiative checks")]
 
-        elif 3 <= talent_roll <= 5:
+        if 3 <= talent_roll <= 5:
             return [
                 BonusFeature(bonus=Bonus.BACKSTAB, value=1),
             ]
-        elif 6 <= talent_roll <= 9:
+        if 6 <= talent_roll <= 9:
             if ctx.stats["dexterity"] < 18:
                 return [StatFeature(stat="dexterity", value=2)]
-            elif ctx.stats["charisma"] < 18:
+            if ctx.stats["charisma"] < 18:
                 return [StatFeature(stat="charisma", value=2)]
             else:
                 return [StatFeature(stat="constitution", value=2)]
@@ -655,12 +655,12 @@ class Wizard(CharacterClass):
         """
         if talent_roll == 2:
             return [GearFeature(gear=random.choice(MAGIC_ITEMS), weight=1)]
-        elif 3 <= talent_roll <= 7 or talent_roll == 12:
+        if 3 <= talent_roll <= 7 or talent_roll == 12:
             if ctx.stats["intelligence"] < 18:
                 return [StatFeature(stat="intelligence", value=2)]
             else:
                 return [BonusFeature(bonus=Bonus.SPELL_CASTING, value=1)]
-        elif 8 <= talent_roll <= 9:
+        if 8 <= talent_roll <= 9:
             return [
                 SpellMasteryFeature(
                     spell=random.choice(
@@ -711,14 +711,14 @@ class KnightOfStYdris(CharacterClass):
         if talent_roll in (2, 12):
             return [BonusFeature(Bonus.DEMONIC_POSSESSION, 1)]
 
-        elif 3 <= talent_roll <= 6:
+        if 3 <= talent_roll <= 6:
             return [
                 BonusFeature(bonus=Bonus.MELEE_ATTACK, value=1),
             ]
-        elif 7 <= talent_roll <= 9:
+        if 7 <= talent_roll <= 9:
             if ctx.stats["strength"] < 18:
                 return [StatFeature(stat="strength", value=2)]
-            elif ctx.stats["constitution"] < 18:
+            if ctx.stats["constitution"] < 18:
                 return [StatFeature(stat="constitution", value=2)]
             else:
                 return [StatFeature(stat="dexterity", value=2)]
@@ -758,11 +758,11 @@ class SlimeWarlock(Warlock):
         """
         if talent_roll == 2:
             return [BonusFeature(Bonus.MUGDULBLUB_SLIME, 1)]
-        elif 3 <= talent_roll <= 7:
+        if 3 <= talent_roll <= 7:
             return [
                 BonusFeature(bonus=Bonus.MUGDULBLUB_HD, value=2),
             ]
-        elif (8 <= talent_roll <= 9) or talent_roll == 12:
+        if (8 <= talent_roll <= 9) or talent_roll == 12:
             if ctx.stats["constitution"] < 18:
                 return [StatFeature(stat="constitution", value=2)]
             else:
@@ -813,9 +813,9 @@ class DemonWarlock(Warlock):
         """
         if talent_roll == 2:
             return [BonusFeature(Bonus.ALMAZZAT_MELEE, 1)]
-        elif 3 <= talent_roll <= 7:
+        if 3 <= talent_roll <= 7:
             return [BonusFeature(Bonus.MELEE_ATTACK, 1)]
-        elif (8 <= talent_roll <= 9) or talent_roll == 12:
+        if (8 <= talent_roll <= 9) or talent_roll == 12:
             if ctx.stats["strength"] < 18:
                 return [StatFeature(stat="strength", value=2)]
             else:
@@ -856,12 +856,12 @@ class FateWarlock(Warlock):
         """
         if talent_roll == 2:
             return [BonusFeature(Bonus.KYTHEROS_REROLL, 1)]
-        elif 3 <= talent_roll <= 7:
+        if 3 <= talent_roll <= 7:
             [BonusFeature(Bonus.ARMOR, 1)]
-        elif (8 <= talent_roll <= 9) or talent_roll == 12:
+        if (8 <= talent_roll <= 9) or talent_roll == 12:
             if ctx.stats["wisdom"] < 18:
                 return [StatFeature(stat="wisdom", value=2)]
-            elif ctx.stats["dexterity"] < 18:
+            if ctx.stats["dexterity"] < 18:
                 return [StatFeature(stat="dexterity", value=2)]
             return [StatFeature(stat="strength", value=2)]
         return [MiscellaneousFeature(name="3/day, add WIS bonus to any roll")]
@@ -887,7 +887,7 @@ class VileWarlock(Warlock):
         """
         if talent_roll == 2:
             return [BonusFeature(Bonus.SHUNE_MIND, 1)]
-        elif 3 <= talent_roll <= 7 or talent_roll == 12:
+        if 3 <= talent_roll <= 7 or talent_roll == 12:
             return [
                 SpellFeature(
                     spell=random.choice(
@@ -895,7 +895,7 @@ class VileWarlock(Warlock):
                     )
                 )
             ]
-        elif 8 <= talent_roll <= 9:
+        if 8 <= talent_roll <= 9:
             if ctx.stats["intelligence"] < 18:
                 return [StatFeature(stat="intelligence", value=2)]
             return [StatFeature(stat="dexterity", value=2)]
@@ -935,11 +935,11 @@ class FeyWarlock(Warlock):
         """
         if talent_roll == 2:
             return [BonusFeature(Bonus.TITANIA_HYPNOTIZE, 1)]
-        elif 3 <= talent_roll <= 7:
+        if 3 <= talent_roll <= 7:
             if "longbow" not in ctx.weapon_proficiencies:
                 return [WeaponProficiencyFeature(weapon="longbow")]
             return [BonusFeature(Bonus.RANGED_ATTACK, 1)]
-        elif (8 <= talent_roll <= 9) or talent_roll == 12:
+        if (8 <= talent_roll <= 9) or talent_roll == 12:
             if ctx.stats["dexterity"] < 18:
                 return [StatFeature(stat="dexterity", value=2)]
             return [StatFeature(stat="charisma", value=2)]
@@ -968,9 +968,9 @@ class WillowWarlock(Warlock):
         """
         if talent_roll == 2:
             return [BonusFeature(Bonus.WILLOWMAN_TELEPORT, 1)]
-        elif 3 <= talent_roll <= 7:
+        if 3 <= talent_roll <= 7:
             return [BonusFeature(Bonus.MELEE_ATTACK, 1)]
-        elif (8 <= talent_roll <= 9) or talent_roll == 12:
+        if (8 <= talent_roll <= 9) or talent_roll == 12:
             if ctx.stats["strength"] < 18:
                 return [StatFeature(stat="strength", value=2)]
             return [StatFeature(stat="dexterity", value=2)]
