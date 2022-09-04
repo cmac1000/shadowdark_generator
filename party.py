@@ -1,3 +1,5 @@
+#! /usr/bin/env python
+
 # pylint: disable=too-many-lines, too-many-instance-attributes, too-many-branches, too-many-locals, too-many-statements, too-few-public-methods, too-many-return-statements
 """
 Generates a series of markdown-formatted character sheets, suitable
